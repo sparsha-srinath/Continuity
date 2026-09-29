@@ -1,0 +1,59 @@
+From: R. Colston (Clerk Supervisor, County Clerk's Office) <r.colston@county.example.gov>
+To: A. Deshmukh (Project Manager, Modernization Engagement) <a.deshmukh@consultingfirm.example.com>
+Date: 2026-03-11 09:42 AM
+Subject: RE: Inspection exemption for license types C and E -- source confirmation
+
+Hi Anjali,
+
+Following up after you looped in our records office. I spoke with the
+County Attorney's staff yesterday and they located the full text of
+Ordinance 2009-14 in the archived council minutes (not previously
+digitized -- it was only in the physical binder in the clerk's vault).
+
+Confirmed: Ordinance 2009-14, Section 3(b), exempts "low-risk business
+categories" -- specifically Home Occupation licenses (our type C) and
+Non-Profit licenses (our type E) -- from the standard 30-day
+post-application inspection scheduling requirement. The rationale
+given in the ordinance is that these categories present minimal
+premises risk compared to retail or food service.
+
+So this is NOT a system defect. The exemption is intentional and has a
+documented legal basis. I've attached a scanned copy of the relevant
+ordinance page to this email for your records (not included in this
+export, but the physical/scanned copy is on file with our office as
+of today's date).
+
+Please have your team update your documentation to cite Ordinance
+2009-14, Section 3(b) directly rather than "per standard practice" --
+that phrasing in some of our older internal notes was never accurate
+and I'd like to see it retired.
+
+Let me know if you need anything else on this.
+
+Best,
+Renee Colston
+Clerk Supervisor, County Clerk's Office
+
+---
+
+From: A. Deshmukh (Project Manager, Modernization Engagement) <a.deshmukh@consultingfirm.example.com>
+To: R. Colston (Clerk Supervisor, County Clerk's Office) <r.colston@county.example.gov>
+Date: 2026-03-09 02:15 PM
+Subject: Inspection exemption for license types C and E -- source confirmation
+
+Hi Renee,
+
+As part of our discovery work on the BLPTS modernization, we've found
+that license types C (Home Occupation) and E (Non-Profit) are exempt
+from the 30-day inspection scheduling rule in the current system, but
+we can't confirm why. Internal notes on file give two different
+explanations -- one references Ordinance 2009-14, another just says
+"per standard practice" -- and neither is confirmed.
+
+Could your office check whether Ordinance 2009-14 exists and, if so,
+what it actually says? We want to make sure this behavior is
+intentional and documented before we carry it forward into the new
+system.
+
+Thanks,
+Anjali

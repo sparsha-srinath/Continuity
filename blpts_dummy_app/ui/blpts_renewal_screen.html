@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BLPTS - County License System</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: #008080;
+        color: #fff;
+        font:
+          11px Tahoma,
+          "MS Sans Serif",
+          sans-serif;
+      }
+      button,
+      input,
+      select {
+        font:
+          11px Tahoma,
+          "MS Sans Serif",
+          sans-serif;
+      }
+      button {
+        min-height: 24px;
+        padding: 2px 10px;
+        border: 2px outset #fff;
+        background: #c0c0c0;
+        color: #000;
+      }
+      button:active {
+        border-style: inset;
+      }
+      button:disabled {
+        color: #808080;
+      }
+      .window {
+        width: min(860px, calc(100% - 12px));
+        min-height: 590px;
+        margin: 14px auto;
+        background: #c0c0c0;
+        color: #000;
+        border: 2px outset #eee;
+        box-shadow: 2px 2px #000;
+      }
+      .titlebar {
+        height: 22px;
+        padding: 0 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #fff;
+        background: #000080;
+        font-weight: bold;
+      }
+      .title-controls {
+        display: flex;
+        gap: 2px;
+      }
+      .title-button {
+        width: 18px;
+        min-height: 17px;
+        padding: 0;
+        font:
+          bold 11px Arial,
+          sans-serif;
+        line-height: 12px;
+      }
+      .menu {
+        padding: 4px 8px;
+        border-bottom: 1px solid #808080;
+      }
+      .menu u {
+        margin-right: 22px;
+        cursor: pointer;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 9px;
+        border-bottom: 1px solid #808080;
+      }
+      .toolbar select {
+        width: 170px;
+        height: 22px;
+        border: 2px inset #fff;
+        background: #fff;
+      }
+      .workspace {
+        display: flex;
+        min-height: 484px;
+      }
+      .sidebar {
+        width: 154px;
+        flex: 0 0 154px;
+        padding: 8px;
+        border-right: 2px groove #fff;
+      }
+      .sidebar-title {
+        margin: 2px 0 7px;
+        font-weight: bold;
+      }
+      .nav-button {
+        display: block;
+        width: 100%;
+        margin: 5px 0;
+        text-align: left;
+      }
+      .nav-button.current {
+        border-style: inset;
+        background: #d8d8d8;
+      }
+      .content {
+        flex: 1;
+        min-width: 0;
+        padding: 10px;
+      }
+      .window.compact .content {
+        padding: 4px;
+      }
+      .window.compact .group,
+      .window.compact .row {
+        margin-top: 4px;
+        margin-bottom: 4px;
+      }
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .group {
+        margin: 0 0 12px;
+        padding: 10px;
+        border: 2px groove #fff;
+      }
+      .group legend {
+        padding: 0 4px;
+        font-weight: bold;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      label {
+        width: 132px;
+        flex: 0 0 132px;
+      }
+      input,
+      select {
+        box-sizing: border-box;
+        height: 23px;
+        border: 2px inset #fff;
+        background: #fff;
+        padding: 2px 4px;
+      }
+      .wide-input {
+        width: min(360px, 100%);
+      }
+      .small-input {
+        width: 100px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .status {
+        min-height: 25px;
+        padding: 6px;
+        border: 2px inset #fff;
+        background: #e8e8e8;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .metric {
+        padding: 10px;
+        border: 2px inset #fff;
+        background: #e8e8e8;
+      }
+      .metric strong {
+        display: block;
+        font-size: 18px;
+        margin-top: 4px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        font-size: 10px;
+      }
+      th,
+      td {
+        padding: 4px;
+        border: 1px solid #808080;
+        text-align: left;
+      }
+      th {
+        background: #000080;
+        color: #fff;
+      }
+      td.actions-cell {
+        white-space: nowrap;
+      }
+      .table-button {
+        min-height: 20px;
+        padding: 1px 6px;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 8px;
+        border-top: 1px solid #808080;
+        color: #333;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .modal-backdrop.open {
+        display: flex;
+      }
+      .dialog {
+        width: 330px;
+        background: #c0c0c0;
+        border: 2px outset #eee;
+        box-shadow: 3px 3px #000;
+      }
+      .dialog-title {
+        padding: 4px 6px;
+        background: #000080;
+        color: #fff;
+        font-weight: bold;
+      }
+      .dialog-body {
+        display: flex;
+        gap: 10px;
+        padding: 14px 12px 8px;
+      }
+      .dialog-icon {
+        width: 23px;
+        height: 23px;
+        flex: 0 0 23px;
+        border: 2px outset #fff;
+        border-radius: 50%;
+        background: #000080;
+        color: #fff;
+        font:
+          bold 17px Georgia,
+          serif;
+        text-align: center;
+        line-height: 23px;
+      }
+      .dialog-actions {
+        padding: 2px 12px 12px;
+        text-align: right;
+      }
+      @media (max-width: 650px) {
+        .window {
+          margin: 4px auto;
+        }
+        .workspace {
+          display: block;
+        }
+        .sidebar {
+          width: auto;
+          border-right: 0;
+          border-bottom: 2px groove #fff;
+        }
+        .sidebar nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        .nav-button {
+          width: auto;
+          margin: 0;
+        }
+        .split {
+          grid-template-columns: 1fr;
+        }
+        label {
+          width: 112px;
+          flex-basis: 112px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="window" id="window">
+      <div class="titlebar">
+        <span id="window-title"
+          >BLPTS - License Renewal [w_license_renewal]</span
+        ><span class="title-controls"
+          ><button class="title-button" aria-label="Minimize">_</button
+          ><button class="title-button" aria-label="Close">X</button></span
+        >
+      </div>
+      <div class="menu">
+        <u data-menu="file-refresh">File</u><u data-menu="edit-clear">Edit</u
+        ><u data-menu="view-compact">View</u><u data-menu="reports">Reports</u
+        ><u data-menu="help">Help</u>
+      </div>
+      <div class="toolbar">
+        <span>Logged in as: <strong id="role-label">Regular Clerk</strong></span
+        ><label
+          >Switch role:
+          <select id="role-select">
+            <option value="clerk">Regular Clerk</option>
+            <option value="admin">Administrator</option>
+          </select></label
+        >
+      </div>
+      <div class="workspace">
+        <aside class="sidebar">
+          <div class="sidebar-title">BLPTS Navigation</div>
+          <nav>
+            <button class="nav-button current" data-page="dashboard">
+              Dashboard
+            </button>
+            <button class="nav-button" data-page="renewal">
+              License Renewal
+            </button>
+            <button class="nav-button" data-page="licenses">
+              License Maintenance
+            </button>
+            <button class="nav-button" data-page="inspections">
+              Inspection Schedule
+            </button>
+            <button class="nav-button admin-only" data-page="staff">
+              Staff Maintenance
+            </button>
+            <button class="nav-button admin-only" data-page="fees">
+              Fee Schedule
+            </button>
+          </nav>
+        </aside>
+        <section class="content">
+          <section class="page active" id="page-dashboard">
+            <h2>County License Desk - Dashboard</h2>
+            <div class="split">
+              <div class="metric">Active licenses<strong>6</strong></div>
+              <div class="metric">Renewals pending<strong>2</strong></div>
+              <div class="metric">Inspections this month<strong>3</strong></div>
+              <div class="metric">
+                Current operator<strong id="dashboard-role">Clerk</strong>
+              </div>
+            </div>
+            <fieldset class="group">
+              <legend>Operator Notices</legend>
+              <div class="status">
+                System ready. Select a task from BLPTS Navigation.
+              </div>
+              <div class="status" style="margin-top: 8px">
+                Last database refresh: 09/25/2026 08:14 AM
+              </div>
+            </fieldset>
+          </section>
+          <section class="page" id="page-renewal">
+            <h2>License Renewal [w_license_renewal]</h2>
+            <fieldset class="group">
+              <legend>Renewal Entry</legend>
+              <div class="row">
+                <label for="business">Business Name:</label
+                ><select id="business" class="wide-input">
+                  <option>Willow Lane Pottery</option>
+                  <option>Juniper Home Studio</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="license-type">License Type:</label
+                ><select id="license-type" class="wide-input">
+                  <option>A - Retail</option>
+                  <option>B - Food Service</option>
+                  <option selected>C - Home Occupation</option>
+                  <option>D - Contractor</option>
+                  <option>E - Non-Profit</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="renewal-year">Renewal Year:</label
+                ><input
+                  id="renewal-year"
+                  class="small-input"
+                  type="number"
+                  value="2019"
+                  min="2000"
+                  max="2100"
+                />
+              </div>
+              <div class="actions">
+                <button id="calculate">Calculate Fee</button
+                ><button id="record-check">System of Record Check</button>
+              </div>
+              <div class="row">
+                <label for="renewal-fee">Renewal Fee Due:</label
+                ><input
+                  id="renewal-fee"
+                  class="small-input"
+                  type="text"
+                  readonly
+                />
+              </div>
+              <div class="row">
+                <label for="record-fee">System Record Fee:</label
+                ><input
+                  id="record-fee"
+                  class="small-input"
+                  type="text"
+                  readonly
+                />
+              </div>
+            </fieldset>
+          </section>
+          <section class="page" id="page-licenses">
+            <h2>License Maintenance [w_license_master]</h2>
+            <fieldset class="group">
+              <legend>License Record</legend>
+              <div class="row">
+                <label for="license-id">License ID:</label
+                ><input
+                  id="license-id"
+                  class="small-input"
+                  type="number"
+                  placeholder="Required"
+                /><label for="license-status">Status:</label
+                ><select id="license-status">
+                  <option>active</option>
+                  <option>inactive</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="license-business">Business Name:</label
+                ><input
+                  id="license-business"
+                  class="wide-input"
+                  placeholder="Required"
+                /><label for="license-kind">Type:</label
+                ><select id="license-kind">
+                  <option>A</option>
+                  <option>B</option>
+                  <option>C</option>
+                  <option>D</option>
+                  <option>E</option>
+                </select>
+              </div>
+              <div class="actions">
+                <button data-crud="license" data-action="save">Save New</button
+                ><button data-crud="license" data-action="clear">Clear</button>
+              </div>
+            </fieldset>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Business Name</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="license-rows"></tbody>
+            </table>
+          </section>
+          <section class="page" id="page-inspections">
+            <h2>Inspection Schedule [w_inspection_schedule]</h2>
+            <fieldset class="group">
+              <legend>Inspection Queue</legend>
+              <table>
+                <thead>
+                  <tr>
+                    <th>License</th>
+                    <th>Business</th>
+                    <th>Scheduled</th>
+                    <th>Exempt</th>
+                    <th>Reason / Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>101</td>
+                    <td>Maple Street Mercantile</td>
+                    <td>10/02/2026</td>
+                    <td>No</td>
+                    <td>30-day rule</td>
+                  </tr>
+                  <tr>
+                    <td>103</td>
+                    <td>Willow Lane Pottery</td>
+                    <td>-</td>
+                    <td>Yes</td>
+                    <td>per standard practice</td>
+                  </tr>
+                  <tr>
+                    <td>105</td>
+                    <td>Civic Arts Outreach</td>
+                    <td>-</td>
+                    <td>Yes</td>
+                    <td>per Ordinance 2009-14</td>
+                  </tr>
+                </tbody>
+              </table>
+            </fieldset>
+            <div class="status">
+              Inspection records are view-only for Regular Clerk.
+            </div>
+          </section>
+          <section class="page" id="page-staff">
+            <h2>Staff Maintenance [w_staff_master]</h2>
+            <fieldset class="group">
+              <legend>Staff Record - Administrator Only</legend>
+              <div class="row">
+                <label for="staff-id">Staff ID:</label
+                ><input
+                  id="staff-id"
+                  class="small-input"
+                  type="number"
+                  placeholder="Required"
+                />
+              </div>
+              <div class="row">
+                <label for="staff-name">Name:</label
+                ><input
+                  id="staff-name"
+                  class="wide-input"
+                  placeholder="Required"
+                />
+              </div>
+              <div class="row">
+                <label for="staff-role">Role:</label
+                ><input
+                  id="staff-role"
+                  class="wide-input"
+                  placeholder="Required"
+                />
+              </div>
+              <div class="actions">
+                <button data-crud="staff" data-action="save">Save New</button
+                ><button data-crud="staff" data-action="clear">Clear</button>
+              </div>
+            </fieldset>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="staff-rows"></tbody>
+            </table>
+          </section>
+          <section class="page" id="page-fees">
+            <h2>Fee Schedule Maintenance [w_fee_schedule]</h2>
+            <fieldset class="group">
+              <legend>Fee Schedule Record - Administrator Only</legend>
+              <div class="row">
+                <label for="fee-type">License Type:</label
+                ><select id="fee-type">
+                  <option>A</option>
+                  <option>B</option>
+                  <option>C</option>
+                  <option>D</option>
+                  <option>E</option></select
+                ><label for="fee-amount">Base Fee:</label
+                ><input
+                  id="fee-amount"
+                  class="small-input"
+                  type="number"
+                  placeholder="Required"
+                />
+              </div>
+              <div class="row">
+                <label for="fee-year">Effective Year:</label
+                ><input
+                  id="fee-year"
+                  class="small-input"
+                  type="number"
+                  placeholder="Required"
+                />
+              </div>
+              <div class="actions">
+                <button data-crud="fee" data-action="save">Save New</button
+                ><button data-crud="fee" data-action="clear">Clear</button>
+              </div>
+            </fieldset>
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Base Fee</th>
+                  <th>Effective Year</th>
+                  <th>Entered By</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="fee-rows"></tbody>
+            </table>
+          </section>
+        </section>
+      </div>
+      <div class="footer">
+        <span id="footer-status">Ready</span
+        ><span>BLPTS County Clerk's Office</span>
+      </div>
+    </main>
+    <div class="modal-backdrop" id="message-box">
+      <dialog class="dialog" open>
+        <div class="dialog-title">BLPTS Message</div>
+        <div class="dialog-body">
+          <div class="dialog-icon">!</div>
+          <div id="message-text"></div>
+        </div>
+        <div class="dialog-actions"><button id="message-ok">OK</button></div>
+      </dialog>
+    </div>
+    <script>
+      const baseFees = { A: 150, B: 200, C: 50, D: 175, E: 0 };
+      const state = {
+        role: "clerk",
+        page: "dashboard",
+        licenses: [
+          {
+            id: 101,
+            name: "Maple Street Mercantile",
+            type: "A",
+            status: "active",
+          },
+          { id: 102, name: "Harborview Cafe", type: "B", status: "active" },
+          { id: 103, name: "Willow Lane Pottery", type: "C", status: "active" },
+          {
+            id: 104,
+            name: "North County Electric",
+            type: "D",
+            status: "active",
+          },
+          { id: 105, name: "Civic Arts Outreach", type: "E", status: "active" },
+          { id: 106, name: "Juniper Home Studio", type: "C", status: "active" },
+        ],
+        staff: [
+          {
+            id: 1,
+            name: "T. Whitfield",
+            role: "Original Developer",
+            status: "contractor_ended",
+          },
+          {
+            id: 3,
+            name: "R. Colston",
+            role: "Clerk Supervisor",
+            status: "active",
+          },
+          { id: 4, name: "J. Pae", role: "IT Support", status: "active" },
+        ],
+        fees: [
+          { type: "A", amount: 150, year: 2003, entered: 1 },
+          { type: "B", amount: 200, year: 2003, entered: 1 },
+          { type: "C", amount: 50, year: 2003, entered: 1 },
+          { type: "D", amount: 175, year: 2003, entered: 1 },
+          { type: "E", amount: 0, year: 2003, entered: 1 },
+        ],
+      };
+      const $ = (id) => document.getElementById(id);
+      const showMessage = (message) => {
+        $("message-text").textContent = message;
+        $("message-box").classList.add("open");
+      };
+      document.querySelectorAll("[data-menu]").forEach((menuItem) =>
+        menuItem.addEventListener("click", () => {
+          const command = menuItem.dataset.menu;
+          if (command === "file-refresh") {
+            renderRows();
+            return showMessage("Records refreshed from the local BLPTS store.");
+          }
+          if (command === "edit-clear") {
+            const formByPage = {
+              licenses: "license",
+              staff: "staff",
+              fees: "fee",
+            };
+            if (!formByPage[state.page])
+              return showMessage("There is no editable record on this page.");
+            clearForm(formByPage[state.page]);
+            return showMessage("Current entry cleared.");
+          }
+          if (command === "view-compact") {
+            $("window").classList.toggle("compact");
+            return showMessage(
+              $("window").classList.contains("compact")
+                ? "Compact view enabled."
+                : "Standard view enabled.",
+            );
+          }
+          if (command === "reports")
+            return showMessage(
+              `BLPTS Summary: ${state.licenses.length} licenses, ${state.staff.length} staff records, ${state.fees.length} fee schedules.`,
+            );
+          return showMessage(
+            "BLPTS County License System\nVersion 3.0 demo\nHelp desk: R. Colston",
+          );
+        }),
+      );
+      $("message-ok").addEventListener("click", () =>
+        $("message-box").classList.remove("open"),
+      );
+      const typeCode = () => $("license-type").value.charAt(0);
+      const year = () => Number($("renewal-year").value);
+      const dbFee = (type, renewalYear) => {
+        let fee = baseFees[type] ?? 100;
+        if (renewalYear >= 2011 && ["A", "B"].includes(type)) fee *= 1.15;
+        return fee;
+      };
+      const screenFee = (type, renewalYear) =>
+        dbFee(type, renewalYear) +
+        (renewalYear >= 2018 && type === "C" ? 25 : 0);
+      const display = (value) => `$${value.toFixed(2)}`;
+      $("calculate").addEventListener("click", () => {
+        if (!year()) return showMessage("Renewal Year is required.");
+        $("renewal-fee").value = display(screenFee(typeCode(), year()));
+      });
+      $("record-check").addEventListener("click", () => {
+        if (!year()) return showMessage("Renewal Year is required.");
+        $("record-fee").value = display(dbFee(typeCode(), year()));
+      });
+      const setPage = (page) => {
+        if (["staff", "fees"].includes(page) && state.role !== "admin")
+          return showMessage(
+            "Access denied. Administrator privileges are required.",
+          );
+        state.page = page;
+        document
+          .querySelectorAll(".page")
+          .forEach((item) =>
+            item.classList.toggle("active", item.id === `page-${page}`),
+          );
+        document
+          .querySelectorAll(".nav-button")
+          .forEach((item) =>
+            item.classList.toggle("current", item.dataset.page === page),
+          );
+        $("window-title").textContent =
+          `BLPTS - ${page[0].toUpperCase() + page.slice(1)} [w_${page}]`;
+      };
+      document
+        .querySelectorAll(".nav-button")
+        .forEach((button) =>
+          button.addEventListener("click", () => setPage(button.dataset.page)),
+        );
+      $("role-select").addEventListener("change", (event) => {
+        state.role = event.target.value;
+        const admin = state.role === "admin";
+        $("role-label").textContent = admin ? "Administrator" : "Regular Clerk";
+        $("dashboard-role").textContent = admin ? "Administrator" : "Clerk";
+        document
+          .querySelectorAll(".admin-only")
+          .forEach((item) => (item.disabled = !admin));
+        if (!admin && ["staff", "fees"].includes(state.page))
+          setPage("dashboard");
+        $("footer-status").textContent = admin
+          ? "Administrator mode"
+          : "Clerk mode";
+      });
+      const renderRows = () => {
+        $("license-rows").innerHTML = state.licenses
+          .map(
+            (row) =>
+              `<tr><td>${row.id}</td><td>${row.name}</td><td>${row.type}</td><td>${row.status}</td><td class="actions-cell"><button class="table-button" data-edit-license="${row.id}">Edit</button> <button class="table-button" data-delete-license="${row.id}">Delete</button></td></tr>`,
+          )
+          .join("");
+        $("staff-rows").innerHTML = state.staff
+          .map(
+            (row) =>
+              `<tr><td>${row.id}</td><td>${row.name}</td><td>${row.role}</td><td>${row.status}</td><td class="actions-cell"><button class="table-button" data-delete-staff="${row.id}">Delete</button></td></tr>`,
+          )
+          .join("");
+        $("fee-rows").innerHTML = state.fees
+          .map(
+            (row) =>
+              `<tr><td>${row.type}</td><td>${display(row.amount)}</td><td>${row.year}</td><td>${row.entered}</td><td class="actions-cell"><button class="table-button" data-delete-fee="${row.type}-${row.year}">Delete</button></td></tr>`,
+          )
+          .join("");
+      };
+      const clearForm = (crud) => {
+        const ids =
+          crud === "license"
+            ? ["license-id", "license-business"]
+            : crud === "staff"
+              ? ["staff-id", "staff-name", "staff-role"]
+              : ["fee-amount", "fee-year"];
+        ids.forEach((id) => ($(id).value = ""));
+      };
+      document.querySelectorAll("[data-crud]").forEach((button) =>
+        button.addEventListener("click", () => {
+          const crud = button.dataset.crud;
+          if (button.dataset.action === "clear") return clearForm(crud);
+          if (state.role !== "admin" && ["staff", "fee"].includes(crud))
+            return showMessage(
+              "Access denied. Administrator privileges are required.",
+            );
+          if (crud === "license") {
+            const id = Number($("license-id").value);
+            const name = $("license-business").value.trim();
+            if (!id || !name)
+              return showMessage("License ID and Business Name are required.");
+            if (state.licenses.some((row) => row.id === id))
+              return showMessage("Duplicate key. License ID already exists.");
+            state.licenses.push({
+              id,
+              name,
+              type: $("license-kind").value,
+              status: $("license-status").value,
+            });
+            clearForm(crud);
+            showMessage("License record saved.");
+          } else if (crud === "staff") {
+            const id = Number($("staff-id").value);
+            const name = $("staff-name").value.trim();
+            const role = $("staff-role").value.trim();
+            if (!id || !name || !role)
+              return showMessage("Staff ID, Name, and Role are required.");
+            if (state.staff.some((row) => row.id === id))
+              return showMessage("Duplicate key. Staff ID already exists.");
+            state.staff.push({ id, name, role, status: "active" });
+            clearForm(crud);
+            showMessage("Staff record saved.");
+          } else {
+            const amount = Number($("fee-amount").value);
+            const feeYear = Number($("fee-year").value);
+            const type = $("fee-type").value;
+            if (Number.isNaN(amount) || !feeYear)
+              return showMessage("Base Fee and Effective Year are required.");
+            if (
+              state.fees.some(
+                (row) => row.type === type && row.year === feeYear,
+              )
+            )
+              return showMessage(
+                "Duplicate key. Fee schedule record already exists.",
+              );
+            state.fees.push({ type, amount, year: feeYear, entered: 3 });
+            clearForm(crud);
+            showMessage("Fee schedule record saved.");
+          }
+          renderRows();
+        }),
+      );
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (target.dataset.editLicense) {
+          const row = state.licenses.find(
+            (item) => item.id === Number(target.dataset.editLicense),
+          );
+          $("license-id").value = row.id;
+          $("license-business").value = row.name;
+          $("license-kind").value = row.type;
+          $("license-status").value = row.status;
+        }
+        if (target.dataset.deleteLicense) {
+          if (state.role !== "admin")
+            return showMessage("Delete requires Administrator privileges.");
+          state.licenses = state.licenses.filter(
+            (row) => row.id !== Number(target.dataset.deleteLicense),
+          );
+          renderRows();
+        }
+        if (target.dataset.deleteStaff) {
+          state.staff = state.staff.filter(
+            (row) => row.id !== Number(target.dataset.deleteStaff),
+          );
+          renderRows();
+        }
+        if (target.dataset.deleteFee) {
+          const [type, feeYear] = target.dataset.deleteFee.split("-");
+          state.fees = state.fees.filter(
+            (row) => !(row.type === type && String(row.year) === feeYear),
+          );
+          renderRows();
+        }
+      });
+      renderRows();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#17324d" />
+    <title>BLPTS Modern | License Operations</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #17324d;
+        --ink: #17212b;
+        --muted: #697586;
+        --line: #dfe6ed;
+        --canvas: #f4f7fa;
+        --mint: #2d9d78;
+        --blue: #2563eb;
+        --amber: #d97706;
+      }
+      body {
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      .navbar {
+        background: var(--navy);
+        box-shadow: 0 5px 18px rgba(20, 45, 70, 0.16);
+      }
+      .brand-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 10px;
+        color: #fff;
+        background: #14785a;
+        font-weight: 800;
+      }
+      .navbar-brand {
+        letter-spacing: -0.03em;
+      }
+      .navbar-brand small {
+        color: #a8bbca;
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .navbar .nav-link {
+        color: #d8e3eb;
+        font-size: 0.88rem;
+      }
+      .navbar .nav-link.active,
+      .navbar .nav-link:hover {
+        color: #fff;
+      }
+      .page-shell {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 32px 22px 60px;
+      }
+      .eyebrow {
+        color: var(--mint);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .hero h1 {
+        font-size: clamp(1.8rem, 3vw, 2.65rem);
+        letter-spacing: -0.055em;
+        font-weight: 800;
+      }
+      .hero p {
+        max-width: 680px;
+        color: var(--muted);
+      }
+      .status-pill {
+        color: #14785a;
+        background: #e3f6ed;
+        border: 1px solid #b9ead4;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+      .metric-card,
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(32, 56, 78, 0.045);
+      }
+      .metric-card {
+        padding: 18px;
+        height: 100%;
+      }
+      .metric-icon {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        color: #fff;
+        background: var(--blue);
+      }
+      .metric-label {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+      }
+      .metric-value {
+        margin-top: 5px;
+        font-size: 1.6rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+      }
+      .metric-note {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+      .section-nav {
+        position: sticky;
+        top: 76px;
+        z-index: 2;
+      }
+      .section-nav .nav-link {
+        border-radius: 9px;
+        color: #617080;
+        font-size: 0.83rem;
+        font-weight: 700;
+        padding: 9px 12px;
+      }
+      .section-nav .nav-link.active {
+        color: var(--navy);
+        background: #e4edf5;
+      }
+      .panel {
+        padding: 22px;
+      }
+      .panel-title {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .panel-subtitle {
+        color: var(--muted);
+        font-size: 0.77rem;
+      }
+      .form-label {
+        color: #3f4d5a;
+        font-size: 0.77rem;
+        font-weight: 700;
+      }
+      .form-control,
+      .form-select {
+        border-color: #d5dee7;
+        border-radius: 9px;
+        font-size: 0.86rem;
+        padding: 0.65rem 0.75rem;
+      }
+      .form-control:focus,
+      .form-select:focus {
+        border-color: #80a9d6;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.1);
+      }
+      .btn-primary {
+        background: var(--blue);
+        border-color: var(--blue);
+      }
+      .btn-primary,
+      .btn-outline-secondary {
+        border-radius: 9px;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .result-box {
+        border: 1px solid #cfe8dc;
+        border-radius: 12px;
+        background: #f1fbf6;
+        padding: 16px;
+      }
+      .result-total {
+        color: #14785a;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.06em;
+      }
+      .result-detail {
+        color: #577468;
+        font-size: 0.76rem;
+      }
+      .comparison-row {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.79rem;
+      }
+      .comparison-row:last-child {
+        border-bottom: 0;
+      }
+      .comparison-row strong {
+        font-size: 0.8rem;
+      }
+      .tag {
+        display: inline-block;
+        border-radius: 20px;
+        padding: 4px 8px;
+        font-size: 0.68rem;
+        font-weight: 800;
+      }
+      .tag-legacy {
+        color: #9a5a08;
+        background: #fff3d7;
+      }
+      .tag-modern {
+        color: #176b51;
+        background: #e3f6ed;
+      }
+      .table {
+        font-size: 0.78rem;
+      }
+      .table th {
+        color: var(--muted);
+        font-size: 0.67rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .table td,
+      .table th {
+        padding: 12px 8px;
+        vertical-align: middle;
+      }
+      .source-callout {
+        border-left: 3px solid var(--mint);
+        color: #526b60;
+        background: #f3faf7;
+        font-size: 0.78rem;
+        padding: 12px 14px;
+      }
+      .page-section {
+        display: none;
+      }
+      .page-section.active {
+        display: block;
+        animation: arrive 0.25s ease-out;
+      }
+      .toast-container {
+        z-index: 1080;
+      }
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @media (max-width: 991px) {
+        .section-nav {
+          position: static;
+          display: flex;
+          overflow-x: auto;
+          white-space: nowrap;
+          gap: 4px;
+          margin-bottom: 18px;
+        }
+        .section-nav .nav-link {
+          display: inline-block;
+        }
+      }
+      @media (max-width: 575px) {
+        .page-shell {
+          padding: 24px 14px 45px;
+        }
+        .comparison-row {
+          grid-template-columns: 1fr;
+          gap: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav
+      class="navbar navbar-expand-lg navbar-dark sticky-top"
+      aria-label="Primary navigation"
+    >
+      <div class="container-fluid px-3 px-lg-4">
+        <a
+          class="navbar-brand d-flex align-items-center gap-2"
+          href="#dashboard"
+          data-section="dashboard"
+          ><span class="brand-mark">B</span
+          ><span
+            >BLPTS Modern<small class="d-block"
+              >County license operations</small
+            ></span
+          ></a
+        >
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNav"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                href="#dashboard"
+                data-section="dashboard"
+                >Dashboard</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#renewal" data-section="renewal"
+                >Renewals</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#records" data-section="records"
+                >Licenses</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#rules" data-section="rules"
+                >Rules & sources</a
+              >
+            </li>
+            <li class="nav-item ms-lg-3">
+              <span class="badge rounded-pill bg-light text-dark px-3 py-2"
+                ><i class="bi bi-person-circle me-1"></i> Clerk portal</span
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="page-shell">
+      <section
+        class="hero d-flex justify-content-between align-items-end gap-3 mb-4"
+      >
+        <div>
+          <div class="eyebrow mb-2">Modernized operations workspace</div>
+          <h1 class="mb-2">License work, without the guesswork.</h1>
+          <p class="mb-0">
+            A single source of truth for fees, renewals, and inspection rules.
+            Built for the county clerk team and ready for the next renewal
+            cycle.
+          </p>
+        </div>
+        <span
+          class="status-pill rounded-pill px-3 py-2 d-none d-md-inline-block"
+          ><i class="bi bi-check-circle me-1"></i>System operational</span
+        >
+      </section>
+      <div class="row g-4">
+        <aside class="col-lg-2">
+          <nav
+            class="section-nav nav flex-lg-column nav-pills"
+            aria-label="Application sections"
+          >
+            <a
+              class="nav-link active"
+              href="#dashboard"
+              data-section="dashboard"
+              ><i class="bi bi-grid-1x2 me-2"></i>Overview</a
+            ><a class="nav-link" href="#renewal" data-section="renewal"
+              ><i class="bi bi-calculator me-2"></i>Renewal calculator</a
+            ><a class="nav-link" href="#records" data-section="records"
+              ><i class="bi bi-building me-2"></i>License records</a
+            ><a class="nav-link" href="#rules" data-section="rules"
+              ><i class="bi bi-journal-check me-2"></i>Rules & sources</a
+            >
+          </nav>
+        </aside>
+        <div class="col-lg-10">
+          <section id="section-dashboard" class="page-section active">
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6 col-xl-3">
+                <div class="metric-card">
+                  <div class="metric-icon mb-3">
+                    <i class="bi bi-buildings"></i>
+                  </div>
+                  <div class="metric-label">Active licenses</div>
+                  <div class="metric-value">6</div>
+                  <div class="metric-note">Across five license types</div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-xl-3">
+                <div class="metric-card">
+                  <div class="metric-icon mb-3" style="background: #2d9d78">
+                    <i class="bi bi-shield-check"></i>
+                  </div>
+                  <div class="metric-label">Unified fee path</div>
+                  <div class="metric-value">100%</div>
+                  <div class="metric-note">One calculation source</div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-xl-3">
+                <div class="metric-card">
+                  <div class="metric-icon mb-3" style="background: #d97706">
+                    <i class="bi bi-calendar3"></i>
+                  </div>
+                  <div class="metric-label">2026 renewals</div>
+                  <div class="metric-value">2</div>
+                  <div class="metric-note">Ready for processing</div>
+                </div>
+              </div>
+              <div class="col-sm-6 col-xl-3">
+                <div class="metric-card">
+                  <div class="metric-icon mb-3" style="background: #7656c9">
+                    <i class="bi bi-stars"></i>
+                  </div>
+                  <div class="metric-label">New capability</div>
+                  <div class="metric-value">3 yr</div>
+                  <div class="metric-note">Discounted term available</div>
+                </div>
+              </div>
+            </div>
+            <div class="row g-4">
+              <div class="col-xl-7">
+                <div class="panel h-100">
+                  <div
+                    class="d-flex justify-content-between align-items-start mb-3"
+                  >
+                    <div>
+                      <div class="panel-title">Renewal activity</div>
+                      <div class="panel-subtitle">
+                        The latest modernized system records
+                      </div>
+                    </div>
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      data-section="renewal"
+                    >
+                      Open calculator
+                    </button>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Business</th>
+                          <th>Type</th>
+                          <th>Term</th>
+                          <th>Fee</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="fw-semibold">Willow Lane Pottery</td>
+                          <td>C</td>
+                          <td>1 year</td>
+                          <td>$75.00</td>
+                          <td><span class="tag tag-modern">Unified</span></td>
+                        </tr>
+                        <tr>
+                          <td class="fw-semibold">Maple Street Mercantile</td>
+                          <td>A</td>
+                          <td>3 years</td>
+                          <td>$465.75</td>
+                          <td>
+                            <span class="tag tag-modern">Discounted</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="col-xl-5">
+                <div class="panel h-100">
+                  <div class="panel-title mb-1">Modernization health</div>
+                  <div class="panel-subtitle mb-4">
+                    What changed from the legacy system
+                  </div>
+                  <div class="d-flex justify-content-between small mb-2">
+                    <span>Fee consistency</span><strong>Resolved</strong>
+                  </div>
+                  <div class="progress mb-3" style="height: 7px">
+                    <div
+                      class="progress-bar bg-success"
+                      style="width: 100%"
+                    ></div>
+                  </div>
+                  <div class="d-flex justify-content-between small mb-2">
+                    <span>Inspection rule source</span
+                    ><strong>Confirmed</strong>
+                  </div>
+                  <div class="progress mb-3" style="height: 7px">
+                    <div
+                      class="progress-bar bg-success"
+                      style="width: 100%"
+                    ></div>
+                  </div>
+                  <div class="d-flex justify-content-between small mb-2">
+                    <span>New feature coverage</span><strong>Multi-year</strong>
+                  </div>
+                  <div class="progress" style="height: 7px">
+                    <div
+                      class="progress-bar"
+                      style="width: 78%; background: #7656c9"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="section-renewal" class="page-section">
+            <div class="row g-4">
+              <div class="col-xl-7">
+                <div class="panel">
+                  <div class="panel-title">Renewal calculator</div>
+                  <div class="panel-subtitle mb-4">
+                    Calculate the unified modernized fee and any multi-year
+                    discount.
+                  </div>
+                  <form id="renewal-form" class="row g-3">
+                    <div class="col-md-7">
+                      <label class="form-label" for="business">Business</label
+                      ><select class="form-select" id="business">
+                        <option>Willow Lane Pottery</option>
+                        <option>Maple Street Mercantile</option>
+                        <option>Juniper Home Studio</option>
+                        <option>Harborview Cafe</option>
+                      </select>
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label" for="licenseType"
+                        >License type</label
+                      ><select class="form-select" id="licenseType">
+                        <option value="A">A - Retail</option>
+                        <option value="B">B - Food Service</option>
+                        <option value="C" selected>C - Home Occupation</option>
+                        <option value="D">D - Contractor</option>
+                        <option value="E">E - Non-Profit</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="renewalYear"
+                        >Renewal year</label
+                      ><input
+                        class="form-control"
+                        id="renewalYear"
+                        type="number"
+                        value="2026"
+                        min="2000"
+                        max="2100"
+                        required
+                      />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="termYears"
+                        >Renewal term</label
+                      ><select class="form-select" id="termYears">
+                        <option value="1">1 year - no discount</option>
+                        <option value="2">2 years - 5% discount</option>
+                        <option value="3" selected>
+                          3 years - 10% discount
+                        </option>
+                      </select>
+                    </div>
+                    <div class="col-12 d-flex gap-2 pt-2">
+                      <button class="btn btn-primary px-4" type="submit">
+                        <i class="bi bi-calculator me-2"></i>Calculate renewal</button
+                      ><button class="btn btn-outline-secondary" type="reset">
+                        Reset
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div class="col-xl-5">
+                <div class="result-box h-100">
+                  <div class="panel-title mb-1">Renewal estimate</div>
+                  <div class="result-detail mb-3" id="resultBusiness">
+                    Select a record to calculate
+                  </div>
+                  <div class="result-total" id="resultTotal">$0.00</div>
+                  <div class="result-detail mt-2" id="resultBreakdown">
+                    Your calculated total will appear here.
+                  </div>
+                  <hr />
+                  <div class="d-flex justify-content-between small">
+                    <span>Calculation path</span
+                    ><strong class="text-success">Unified</strong>
+                  </div>
+                  <div class="d-flex justify-content-between small mt-2">
+                    <span>System version</span><strong>Modernized v1</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="source-callout mt-4">
+              <i class="bi bi-info-circle me-2"></i>Type C renewals consistently
+              include the $25 Home Occupation Plus surcharge. The modernized
+              system has one calculation path.
+            </div>
+          </section>
+          <section id="section-records" class="page-section">
+            <div class="panel">
+              <div
+                class="d-flex justify-content-between align-items-start mb-4"
+              >
+                <div>
+                  <div class="panel-title">License records</div>
+                  <div class="panel-subtitle">
+                    Carried forward from legacy with modernized renewal history
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm">
+                  <i class="bi bi-plus-lg me-1"></i>New license
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>License ID</th>
+                      <th>Business</th>
+                      <th>Type</th>
+                      <th>Issued</th>
+                      <th>Latest renewal</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>103</td>
+                      <td class="fw-semibold">Willow Lane Pottery</td>
+                      <td>C</td>
+                      <td>May 2012</td>
+                      <td>$75.00 · 1 year</td>
+                      <td>
+                        <span
+                          class="badge text-bg-success-subtle text-success-emphasis"
+                          >Active</span
+                        >
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-light">
+                          <i class="bi bi-three-dots"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>101</td>
+                      <td class="fw-semibold">Maple Street Mercantile</td>
+                      <td>A</td>
+                      <td>Apr 2005</td>
+                      <td>$465.75 · 3 years</td>
+                      <td>
+                        <span
+                          class="badge text-bg-success-subtle text-success-emphasis"
+                          >Active</span
+                        >
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-light">
+                          <i class="bi bi-three-dots"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>106</td>
+                      <td class="fw-semibold">Juniper Home Studio</td>
+                      <td>C</td>
+                      <td>Jun 2022</td>
+                      <td>Pending</td>
+                      <td>
+                        <span
+                          class="badge text-bg-success-subtle text-success-emphasis"
+                          >Active</span
+                        >
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-light">
+                          <i class="bi bi-three-dots"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section id="section-rules" class="page-section">
+            <div class="row g-4">
+              <div class="col-lg-6">
+                <div class="panel h-100">
+                  <div class="panel-title">Confirmed inspection rule</div>
+                  <div class="panel-subtitle mb-3">
+                    The ambiguity from the legacy system is resolved.
+                  </div>
+                  <div class="source-callout mb-4">
+                    <strong>Ordinance 2009-14, Section 3(b)</strong
+                    ><br />License types C and E are exempt from mandatory
+                    inspection scheduling as low-risk business categories.
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <span class="tag tag-modern">Type C · exempt</span
+                    ><span class="tag tag-modern">Type E · exempt</span
+                    ><span class="tag tag-modern">Source confirmed</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="panel h-100">
+                  <div class="panel-title">Version comparison</div>
+                  <div class="panel-subtitle mb-2">
+                    Scope answers by system version
+                  </div>
+                  <div class="comparison-row">
+                    <strong>Type C fee</strong
+                    ><span
+                      ><span class="tag tag-legacy">Legacy</span> $50 or
+                      $75</span
+                    ><span
+                      ><span class="tag tag-modern">Modern</span> $75
+                      unified</span
+                    >
+                  </div>
+                  <div class="comparison-row">
+                    <strong>Inspection source</strong><span>Ambiguous</span
+                    ><span>Ordinance 2009-14 §3(b)</span>
+                  </div>
+                  <div class="comparison-row">
+                    <strong>Multi-year discount</strong
+                    ><span>Not available</span><span>5% / 10% available</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="toast" class="toast">
+        <div class="toast-header">
+          <span
+            class="brand-mark me-2"
+            style="
+              width: 22px;
+              height: 22px;
+              border-radius: 6px;
+              font-size: 0.7rem;
+            "
+            >B</span
+          ><strong class="me-auto">BLPTS Modern</strong><small>now</small
+          ><button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="toast"
+          ></button>
+        </div>
+        <output class="toast-body d-block" id="toastText"
+          >Action completed.</output
+        >
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const baseFees = { A: 150, B: 200, C: 50, D: 175, E: 0 };
+      const showToast = (message) => {
+        document.getElementById("toastText").textContent = message;
+        bootstrap.Toast.getOrCreateInstance(
+          document.getElementById("toast"),
+        ).show();
+      };
+      const switchSection = (section) => {
+        document
+          .querySelectorAll(".page-section")
+          .forEach((item) =>
+            item.classList.toggle("active", item.id === `section-${section}`),
+          );
+        document
+          .querySelectorAll("[data-section]")
+          .forEach((item) =>
+            item.classList.toggle("active", item.dataset.section === section),
+          );
+        window.location.hash = section;
+      };
+      document.querySelectorAll("[data-section]").forEach((item) =>
+        item.addEventListener("click", (event) => {
+          event.preventDefault();
+          switchSection(item.dataset.section);
+        }),
+      );
+      const calculate = (event) => {
+        event.preventDefault();
+        const type = document.getElementById("licenseType").value;
+        const year = Number(document.getElementById("renewalYear").value);
+        const term = Number(document.getElementById("termYears").value);
+        if (!year || year < 2000)
+          return showToast("Please enter a valid renewal year.");
+        let perYear = baseFees[type] ?? 100;
+        if (year >= 2011 && ["A", "B"].includes(type)) perYear *= 1.15;
+        if (type === "C") perYear += 25;
+        const rate = { 1: 0, 2: 0.05, 3: 0.1 }[term];
+        const base = perYear * term;
+        const discount = base * rate;
+        const total = base - discount;
+        document.getElementById("resultBusiness").textContent =
+          `${document.getElementById("business").value} · ${term}-year term`;
+        document.getElementById("resultTotal").textContent =
+          `$${total.toFixed(2)}`;
+        document.getElementById("resultBreakdown").textContent =
+          `$${perYear.toFixed(2)} per year × ${term} minus $${discount.toFixed(2)} discount`;
+        showToast("Renewal estimate updated.");
+      };
+      document
+        .getElementById("renewal-form")
+        .addEventListener("submit", calculate);
+      document.getElementById("renewal-form").addEventListener("reset", () =>
+        setTimeout(() => {
+          document.getElementById("resultBusiness").textContent =
+            "Select a record to calculate";
+          document.getElementById("resultTotal").textContent = "$0.00";
+          document.getElementById("resultBreakdown").textContent =
+            "Your calculated total will appear here.";
+        }, 0),
+      );
+      const initial = window.location.hash.replace("#", "");
+      if (["dashboard", "renewal", "records", "rules"].includes(initial))
+        switchSection(initial);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+From: D. Marsh <d.marsh@county.example.gov>
+To: R. Colston <r.colston@county.example.gov>
+Date: 2019-09-05
+Subject: RE: those two Home Occupation renewals
+
+Renee,
+
+Took a look at the two renewals you flagged. You're right, one came back
+at $50 and the other at $75. Both are type C.
+
+Best guess: this is probably related to the surcharge patch I did last
+year (LOG-441) for the Home Occupation Plus thing. I only touched the
+renewal screen code for that, not the nightly batch calculation -- didn't
+think it mattered since I figured the batch job was just for
+reconciliation, not for what clerks actually charge people.
+
+I don't have time to dig into this properly this week, we've got the
+budget audit prep. Can you just keep an eye on it for now and let me know
+if it keeps happening? If it's isolated to these two I might just fix the
+data by hand instead of touching the code again.
+
+-D
+
+---
+
+From: R. Colston <r.colston@county.example.gov>
+To: D. Marsh <d.marsh@county.example.gov>
+Date: 2019-09-05
+Subject: RE: RE: those two Home Occupation renewals
+
+Ok, I'll keep watching for it. For now I manually double check any Home
+Occupation renewal before we send the invoice out, just to be safe.
+
+Let me know once you get a chance to look at it properly -- I don't love
+that we don't actually know why they're different.
+
+-Renee

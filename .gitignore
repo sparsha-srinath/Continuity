@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+.venv-*/
+venv/
+.pytest_cache/
+.knowledge_store/
+.metadata_store.json
+*.stdout.log
+*.stderr.log
+
+# Local tooling
+.streamlit/
+.env
+.env.*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/

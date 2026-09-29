@@ -40,14 +40,15 @@ class DeterministicEmbeddingFunction:
 
 
 class ChromaKnowledgeStore:
-    def __init__(self, persist_directory: str = ".knowledge_store"):
-        self.client = chromadb.PersistentClient(path=persist_directory)
+    def __init__(self, persist_directory: str = ".knowledge_store", *, client=None,
+                 collection_name: str = "blpts_passages_v3"):
+        self.client = client if client is not None else chromadb.PersistentClient(path=persist_directory)
         self.embedding_fn = DeterministicEmbeddingFunction()
 
         self.collection = self.client.get_or_create_collection(
             # The collection name is versioned because changing embedding
             # dimensions is incompatible with an already-persisted Chroma index.
-            name="blpts_passages_v3",
+            name=collection_name,
             metadata={"hnsw:space": "cosine"},
         )
 

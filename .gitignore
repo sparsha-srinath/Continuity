@@ -9,11 +9,13 @@ venv/
 .pytest_cache/
 .knowledge_store/
 .metadata_store.json
+.demo-artifacts/
 *.stdout.log
 *.stderr.log
 
 # Local tooling
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 .env
 .env.*
 

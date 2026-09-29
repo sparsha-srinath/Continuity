@@ -156,7 +156,7 @@ def _load_data_directory(base_dir: str | Path) -> List[dict]:
     return records if records else _default_seed_records()
 
 
-def build_seed_chunks() -> List[SourceChunk]:
+def build_seed_documents() -> List[SourceChunk]:
     records = _load_data_directory(Path(__file__).resolve().parent.parent / "data")
     chunks = []
     for record in records:
@@ -184,7 +184,11 @@ def build_seed_chunks() -> List[SourceChunk]:
     chunks.extend(_load_blpts_folder(root / "blpts_legacy", "legacy"))
     chunks.extend(_load_blpts_folder(root / "blpts_mod", "mod_v1"))
     chunks.extend(_jira_ticket_chunks())
-    return split_chunks(chunks)
+    return chunks
+
+
+def build_seed_chunks() -> List[SourceChunk]:
+    return split_chunks(build_seed_documents())
 
 
 def _spreadsheet_text(path: Path) -> str:

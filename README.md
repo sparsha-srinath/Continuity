@@ -34,22 +34,28 @@ cd "c:\Users\sparsha.srinath\NET projects\CoSD\AI Fullstack\Modernization Assist
 
 ## Demo scenarios
 
-On the `demo` branch, launch the guided presentation with:
+On the `demo` branch, launch the live modernization studio with:
 
 ```powershell
 ./run_demo.ps1 -Install # First run; installs dependencies
 ./run_demo.ps1          # Subsequent runs
 ```
 
-The demo opens on port 8502 and needs no model or API key after dependency
-setup. Four prepared scenarios cover the BLPTS renewal fee fix, inspection
-rationale, surcharge documentation drift, and the AMI knowledge gap. Each
-includes local source links and presenter notes. **Ask live model** runs the
-same question through the existing model pipeline when a provider is configured.
-Prepared content is explicitly labeled and separate from live answers.
+The demo opens on port 8502 with four views: Overview, Knowledge base,
+Chunk explorer, and Live Q&A. Add or edit evidence, preview and change chunk
+boundaries, generate answers with the configured model, and pin before/after
+comparisons. Clear the KB or restore its baseline in one click.
 
-See [the five-minute presenter guide](docs/presenter-demo.md). You can also
-enable **Guided demo** in the regular app or open `/?demo=1`.
+Each browser session owns an isolated, in-memory Chroma index. Edits and
+answer history last for that session (not across a browser reload or server
+restart); original source files and the normal persistent KB stay intact.
+Export documents before ending a session if you need a copy. New uploads
+support UTF-8 text, Markdown, Python, SQL, CSV, and JSON (500 KB per document).
+The baseline also ingests its existing Excel records.
+
+All answers use live retrieval and model generation; there are no prepared
+answers. Configure a provider below for Q&A. Evidence editing and chunk
+exploration work without a running model. See [the live presenter workflow](docs/presenter-demo.md).
 
 ## Synthetic data and MCP demo
 
@@ -85,7 +91,7 @@ LOCAL_LLM_API = "auto"
 
 `auto` selects native Ollama for localhost port 11434. Use `ollama` explicitly for another Ollama endpoint, or `compatible` for a server implementing `/v1/chat/completions` and JSON-schema output. For compatible servers, configure their actual context window separately to match `LLM_CONTEXT_TOKENS`.
 
-The answer's **Answer details** section records pipeline version, retrieval/context counts, prompt bytes, attempts, elapsed time, and failure stage without storing raw model responses. Old conversation entries have a **Regenerate answer** action. After backend edits, restart Streamlit so its imported Python modules are refreshed.
+The answer's **Request diagnostics** section records pipeline version, retrieval/context counts, prompt bytes, attempts, elapsed time, and failure stage without storing raw model responses. Generate the same question again after a KB update to use the new revision, and pin a prior answer for comparison. Source viewers retain the document text at answer time. After backend edits, restart Streamlit so its imported Python modules are refreshed.
 
 Run tests with:
 

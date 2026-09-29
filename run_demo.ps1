@@ -18,7 +18,8 @@ if ($Install) {
     if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }
 }
 
-Write-Host "Opening the guided demo at http://127.0.0.1:$Port/?demo=1"
-Write-Host "Prepared scenarios need no model or API key. Press Ctrl+C to stop."
-& $demoPython -m streamlit run app.py --server.address 127.0.0.1 --server.port $Port --server.headless false -- --demo
+Write-Host "Opening the live modernization studio at http://127.0.0.1:$Port"
+Write-Host "Live Q&A uses your configured model. KB editing and chunk exploration work without a model."
+Write-Host "Each browser session has its own resettable knowledge index. Press Ctrl+C to stop."
+& $demoPython -m streamlit run app.py --server.address 127.0.0.1 --server.port $Port --server.headless false --browser.gatherUsageStats false
 if ($LASTEXITCODE -ne 0) { throw "Demo failed to start. Try ./run_demo.ps1 -Install or choose another -Port." }

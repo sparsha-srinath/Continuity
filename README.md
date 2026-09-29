@@ -34,10 +34,22 @@ cd "c:\Users\sparsha.srinath\NET projects\CoSD\AI Fullstack\Modernization Assist
 
 ## Demo scenarios
 
-The app is seeded for two representative cases:
+On the `demo` branch, launch the guided presentation with:
 
-1. Surcharge conflict around the 1000 kWh threshold
-2. Missing documentation for AMI meter retry logic
+```powershell
+./run_demo.ps1 -Install # First run; installs dependencies
+./run_demo.ps1          # Subsequent runs
+```
+
+The demo opens on port 8502 and needs no model or API key after dependency
+setup. Four prepared scenarios cover the BLPTS renewal fee fix, inspection
+rationale, surcharge documentation drift, and the AMI knowledge gap. Each
+includes local source links and presenter notes. **Ask live model** runs the
+same question through the existing model pipeline when a provider is configured.
+Prepared content is explicitly labeled and separate from live answers.
+
+See [the five-minute presenter guide](docs/presenter-demo.md). You can also
+enable **Guided demo** in the regular app or open `/?demo=1`.
 
 ## Synthetic data and MCP demo
 

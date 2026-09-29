@@ -1,4 +1,5 @@
 import html
+import sys
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -6,6 +7,7 @@ from urllib.parse import quote
 import streamlit as st
 
 from knowledge_assistant.core import KnowledgeAssistant, PIPELINE_VERSION
+from knowledge_assistant.demo import DemoAssistant, SCENARIOS
 from knowledge_assistant.llm_provider import ProviderError, load_provider_config
 
 
@@ -22,6 +24,8 @@ def scope_name(scope: str) -> str:
 
 def document_url(chunk_id: object, query: str, source: dict | None = None) -> str:
     url = f"?citation={quote(str(chunk_id), safe='')}&question={quote(query, safe='')}"
+    if st.session_state.get("guided_demo", False):
+        url += "&demo=1"
     if source is not None and "excerpt_start" in source and "excerpt_end" in source:
         url += f"&start={int(source['excerpt_start'])}&end={int(source['excerpt_end'])}"
     return url
@@ -66,7 +70,8 @@ def show_document_viewer(source: Any, question: str) -> None:
             passage = passage[start:end]
     except (TypeError, ValueError):
         pass
-    st.markdown('<a class="back-link" href="?" target="_self">← Back to conversation</a>', unsafe_allow_html=True)
+    back_url = "?demo=1" if st.session_state.get("guided_demo", False) else "?"
+    st.markdown(f'<a class="back-link" href="{back_url}" target="_self">← Back to conversation</a>', unsafe_allow_html=True)
     st.markdown(f"## {safe(source.section_title)}")
     st.markdown(
         f'<div class="document-meta"><span>{safe(version)}</span><span>{safe(source.source_type.title())}</span>'
@@ -150,7 +155,9 @@ def show_result(result: dict, question: str) -> None:
         st.error(result["summary"])
     else:
         show_answer(result["summary"])
-    counts = f"{diagnostic.get('retrieved_chunks', len(evidence))} passages retrieved · {len(evidence)} cited"
+    prepared = result.get("generation_method") == "prepared_demo"
+    counts = (f"Prepared walkthrough · {len(evidence)} local sources · No model call"
+              if prepared else f"{diagnostic.get('retrieved_chunks', len(evidence))} passages retrieved · {len(evidence)} cited")
     if diagnostic.get("elapsed_seconds") is not None:
         counts += f" · {diagnostic['elapsed_seconds']:.1f}s"
     st.caption(counts)
@@ -158,7 +165,7 @@ def show_result(result: dict, question: str) -> None:
     if diagnostic:
         with st.expander("Answer details"):
             st.json(diagnostic)
-    else:
+    elif not prepared:
         st.caption("This answer predates the current retrieval update. Submit the question again to regenerate it.")
 
 
@@ -181,14 +188,18 @@ html, body, [class*="css"] { font-family:Manrope, sans-serif; } .stApp { backgro
     unsafe_allow_html=True,
 )
 
-assistant = KnowledgeAssistant()
-try:
-    active_provider = load_provider_config()
-    provider_label = f"{active_provider.provider} · {active_provider.model}" if active_provider.provider != "none" else "No answer model configured"
-except ProviderError as provider_error:
-    provider_label = f"Provider setup needed: {provider_error}"
-if assistant.provider_error:
-    provider_label = f"Provider setup needed: {assistant.provider_error}"
+guided_demo = st.toggle("Guided demo", value=st.query_params.get("demo") == "1" or "--demo" in sys.argv, key="guided_demo")
+if guided_demo:
+    assistant = DemoAssistant()
+else:
+    assistant = KnowledgeAssistant()
+    try:
+        active_provider = load_provider_config()
+        provider_label = f"{active_provider.provider} · {active_provider.model}" if active_provider.provider != "none" else "No answer model configured"
+    except ProviderError as provider_error:
+        provider_label = f"Provider setup needed: {provider_error}"
+    if assistant.provider_error:
+        provider_label = f"Provider setup needed: {assistant.provider_error}"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -210,9 +221,41 @@ if requested_citation:
         st.stop()
     st.warning("That cited record is no longer in the current evidence index.")
 
+if guided_demo:
+    st.title("Modernization, with the evidence intact.")
+    st.info("Prepared demo · Synthetic data · No model or API key required. "
+            "The summaries and source selections are curated for this walkthrough; "
+            "they are not live AI answers. Turn off Guided demo to use live Q&A.")
+    scenario_index = st.selectbox("Demo scenario", range(len(SCENARIOS)),
+                                  format_func=lambda index: SCENARIOS[index].title, key="demo_scenario")
+    scenario = SCENARIOS[scenario_index]
+    st.progress((scenario_index + 1) / len(SCENARIOS), text=f"Scenario {scenario_index + 1} of {len(SCENARIOS)}")
+    st.caption(f"Evidence scope: {scope_name(scenario.scope)}")
+    st.subheader(scenario.question)
+    show_result(assistant.present(scenario), scenario.question)
+    with st.expander("Presenter notes", expanded=True):
+        st.write(scenario.takeaway)
+
+    def move_demo(index: int) -> None:
+        st.session_state.demo_scenario = index
+
+    def run_demo_live() -> None:
+        st.session_state.guided_demo = False
+        st.query_params.pop("demo", None)
+        st.session_state.pending_demo_question = (scenario.question, scenario.scope)
+        st.session_state.evidence_scope = scenario.scope
+
+    previous, following, restart, live = st.columns(4)
+    previous.button("Previous", disabled=scenario_index == 0, on_click=move_demo, args=(scenario_index - 1,))
+    following.button("Next scenario", disabled=scenario_index == len(SCENARIOS) - 1,
+                     on_click=move_demo, args=(scenario_index + 1,))
+    restart.button("Restart demo", on_click=move_demo, args=(0,))
+    live.button("Ask live model", on_click=run_demo_live)
+    st.stop()
+
 controls, model = st.columns([1, 1])
 with controls:
-    scope = st.selectbox("Evidence scope", ["compare", "legacy", "mod_v1"], format_func=scope_name, label_visibility="collapsed")
+    scope = st.selectbox("Evidence scope", ["compare", "legacy", "mod_v1"], format_func=scope_name, label_visibility="collapsed", key="evidence_scope")
 with model:
     st.markdown(f'<p class="context-note" style="text-align:right">Answer generation: {safe(provider_label)}</p>', unsafe_allow_html=True)
 
@@ -237,6 +280,9 @@ for message_index, message in enumerate(st.session_state.messages):
             st.markdown(message["content"])
 
 prompt = st.chat_input("Ask about a system, decision, or source…")
+pending_demo = st.session_state.pop("pending_demo_question", None)
+if pending_demo:
+    prompt, scope = pending_demo
 if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):

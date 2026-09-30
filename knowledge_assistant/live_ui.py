@@ -612,9 +612,7 @@ def live_qa(workspace):
 
 def render_answer_results(workspace):
     if not st.session_state.answers:
-        markup('<div class="empty-state"><b>No answers generated</b><p>Enter a question and choose a source scope, then select Generate answer. '
-               'For the AMI demo, generate a baseline answer before publishing the owner clarification.</p></div>')
-        st.button("Load AMI clarification", on_click=draft_sample)
+        markup('<div class="empty-state"><b>No answers generated</b><p>Enter a question and choose a source scope, then select Generate answer.</p></div>')
         return
     answers = st.session_state.answers
     index = st.selectbox("Answer history", range(len(answers) - 1, -1, -1),
@@ -628,9 +626,7 @@ def render_answer_results(workspace):
     with main:
         st.subheader("Generated answer")
         answer_body(entry)
-        pin, update = st.columns(2)
-        pin.button("Pin baseline", on_click=pin_answer, args=(entry,), use_container_width=True)
-        update.button("Load AMI clarification", on_click=draft_sample, use_container_width=True)
+        st.button("Pin baseline", on_click=pin_answer, args=(entry,))
         before = st.session_state.get("before_answer")
         with st.container(key="qa_comparison"):
             if before:

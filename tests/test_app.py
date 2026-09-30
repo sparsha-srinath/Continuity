@@ -103,7 +103,8 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
     assert any('Baseline pinned.' in message.value for message in app.info)
     assert not any('**Before · revision' in item.value for item in app.markdown)
     assert len([b for b in app.button if b.label == 'Pin baseline']) == 1
-    button(app, 'Load AMI clarification').click().run()
+    app.radio[0].set_value('Knowledge base').run()
+    button(app, 'Load AMI sample into editor').click().run()
     button(app, 'Publish to knowledge base').click().run()
     app.radio[0].set_value('Live Q&A').run()
     assert any('current KB is revision 02' in message.value for message in app.info)

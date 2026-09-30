@@ -58,7 +58,7 @@ def draft_sample():
     st.session_state.draft_title = "AMI retry configuration — owner clarification"
     st.session_state.draft_text = AMI_UPDATE
     st.session_state.page = "Knowledge base"
-    st.session_state.kb_tab = "Add evidence"
+    st.session_state.kb_tab = "Add document"
 
 
 def ask_ami():
@@ -81,12 +81,12 @@ def heading(kicker, title, subtitle):
 
 
 def stats(workspace):
-    values = [(len(workspace.documents), "Source documents", "In this live workspace"),
+    values = [(len(workspace.documents), "Source documents", "Documents currently in the KB"),
               (len(workspace.chunks), "Indexed chunks", f"{workspace.chunk_size:,} character limit"),
-              (len({d.system_version for d in workspace.documents}), "System versions", "Legacy & modernized"),
-              (f"{workspace.revision:02}", "KB revision", "Every change is traceable")]
+              (len({d.system_version for d in workspace.documents}), "System versions", "Versions represented in the KB"),
+              (f"{workspace.revision:02}", "KB revision", "Current document and index revision")]
     markup('<div class="stats">' + ''.join(
-        f'<div class="stat"><div class="label">{label}<span>↗</span></div>'
+        f'<div class="stat"><div class="label">{label}</div>'
         f'<strong>{value}</strong><small>{sub}</small></div>' for value, label, sub in values) + '</div>')
 
 
@@ -126,7 +126,7 @@ def publish_source(workspace, title, text, system, source_type):
     button_slot = st.empty()
     feedback_slot = st.empty()
     clicked = button_slot.button(
-        "Published to knowledge base ✓" if published else "Publish to knowledge base →",
+        "Published to knowledge base ✓" if published else "Publish to knowledge base",
         key="publish_source", type="primary", use_container_width=True,
         disabled=published or not title.strip() or not text.strip(),
     )
@@ -157,20 +157,20 @@ def sidebar(workspace):
     with st.sidebar:
         logo = b64encode(Path(__file__).with_name("continuity.svg").read_bytes()).decode("ascii")
         markup(f'<div class="wordmark"><img class="continuity-mark" src="data:image/svg+xml;base64,{logo}" '
-               'alt="Continuity — an unbroken orbit">continuity<span class="brand-period">.</span></div>'
-               '<div class="side-label">Modernization studio</div>')
+               'alt="Continuity logo">continuity<span class="brand-period">.</span></div>'
+               '<div class="side-label">Knowledge workspace</div>')
         st.radio("Workspace navigation", PAGES, key="page", label_visibility="collapsed")
         st.divider()
-        markup('<div class="side-label">Live demo workflow</div>'
-               '<div class="side-note">01 &nbsp; Ask with the current evidence<br>'
-               '02 &nbsp; Add what was missing<br>03 &nbsp; Watch the answer change</div>')
-        st.button("Start live demo ↗", on_click=ask_ami, use_container_width=True)
+        markup('<div class="side-label">Demo steps</div>'
+               '<div class="side-note">01 &nbsp; Generate a baseline answer<br>'
+               '02 &nbsp; Publish the AMI clarification<br>03 &nbsp; Generate again and compare</div>')
+        st.button("Load demo question", on_click=ask_ami, use_container_width=True)
         st.divider()
         try:
             config = load_provider_config()
             model = config.model or "No model configured"
             provider = "Local Ollama" if config.uses_ollama else config.provider.title()
-            detail = "Configured · answers generated live" if config.provider != "none" else "Set a provider to generate answers"
+            detail = "Configured model for answer generation" if config.provider != "none" else "Configure a model to generate answers"
         except ProviderError as error:
             model, provider, detail = "Configuration needs attention", "Provider", str(error)
         markup(f'<div class="side-model"><div class="side-label">{esc(provider)}</div>'
@@ -178,39 +178,39 @@ def sidebar(workspace):
 
 
 def overview(workspace):
-    markup('<div class="hero"><div class="eyebrow">The live modernization workspace</div>'
-           '<h1>Make change.<br><em>Keep the context.</em></h1>'
-           '<p>Bring your legacy knowledge forward. Update the evidence, see how it is understood, '
-           'and follow every answer back to its source.</p>'
-           '<div class="hero-foot"><span>◉ &nbsp;Live knowledge base</span><span>◇ &nbsp;Visible retrieval</span>'
-           '<span>↗ &nbsp;Source-backed answers</span></div>'
+    markup('<div class="hero"><div class="eyebrow">Overview</div>'
+           '<h1>Knowledge workspace</h1>'
+           '<p>Manage source documents, inspect indexed passages, and generate answers '
+           'using the configured model and knowledge base.</p>'
+           '<div class="hero-foot"><span>Document management</span><span>Chunk inspection</span>'
+           '<span>Questions and source citations</span></div>'
            '<div class="hero-art" aria-hidden="true"><div class="orbit"></div><div class="orbit inner"></div>'
            '<div class="art-document"><span></span><span></span><span></span><span></span><span></span><span></span></div>'
            '<div class="art-chip one">01 / source.md</div><div class="art-chip two">02 / chunks</div>'
-           '<div class="art-chip three">03 / grounded answer ↗</div></div></div>')
+           '<div class="art-chip three">03 / answer and citations</div></div></div>')
     stats(workspace)
-    markup('<div class="section-heading"><h2>From source to understanding</h2><span>A real pipeline. Open at every step.</span></div>')
-    cards = [("▤", "Your knowledge, alive.", "Add, edit, and remove source documents. Changes reach the search index immediately.", "Knowledge base", "Open knowledge base →"),
-             ("▦", "See the pieces connect.", "Explore document boundaries, tune chunk size, and watch the index take shape.", "Chunk explorer", "Explore chunks →"),
-             ("↗", "Ask. Inspect. Compare.", "Generate an answer with your model. Inspect retrieval and compare before and after.", "Live Q&A", "Ask a question →")]
+    markup('<div class="section-heading"><h2>Workspace tools</h2></div>')
+    cards = [("▤", "Knowledge base", "View, add, edit, or remove source documents. Publishing and saving rebuild the search index.", "Knowledge base", "Open knowledge base"),
+             ("▦", "Chunk explorer", "Inspect passage boundaries, preview a different chunk size, and rebuild the index.", "Chunk explorer", "Open chunk explorer"),
+             ("↗", "Questions and answers", "Ask a question, review cited sources, and compare answers from different KB revisions.", "Live Q&A", "Open Live Q&A")]
     for index, (column, card) in enumerate(zip(st.columns(3, gap="medium"), cards), 1):
         icon, title, description, page, action = card
         with column:
             markup(f'<div class="feature"><span class="feature-number">0{index}</span><span class="icon">{icon}</span>'
                    f'<h3>{title}</h3><p>{description}</p></div>')
             st.button(action, on_click=go, args=(page,), use_container_width=True)
-    markup('<div class="flow"><div class="flow-node"><b>01 &nbsp; Ingest</b><small>Files & knowledge updates</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>02 &nbsp; Chunk</b><small>Exact source passages</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>03 &nbsp; Retrieve</b><small>Rank relevant evidence</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>04 &nbsp; Answer</b><small>Live model & citations</small></div></div>')
+    markup('<div class="flow"><div class="flow-node"><b>01 &nbsp; Add documents</b><small>Upload files or paste text</small></div>'
+           '<span class="flow-arrow">→</span><div class="flow-node"><b>02 &nbsp; Split into chunks</b><small>Create searchable passages</small></div>'
+           '<span class="flow-arrow">→</span><div class="flow-node"><b>03 &nbsp; Retrieve passages</b><small>Find matches for the question</small></div>'
+           '<span class="flow-arrow">→</span><div class="flow-node"><b>04 &nbsp; Generate an answer</b><small>Use selected passages as context</small></div></div>')
     left, right = st.columns([1.25, 1], gap="large")
     with left:
-        markup('<div class="section-heading"><h2>A demo with a before & after</h2><span>Try the AMI workflow</span></div>')
+        markup('<div class="section-heading"><h2>AMI retry settings demo</h2></div>')
         st.write("Ask for the exact AMI retry settings. Pin the first answer, add the owner’s clarification, "
-                 "and ask again. See new evidence become a new answer.")
-        st.button("Start live workflow →", type="primary", on_click=ask_ami)
+                 "and ask the same question again to compare the answers and their sources.")
+        st.button("Load AMI demo question", type="primary", on_click=ask_ami)
     with right:
-        markup('<div class="section-heading"><h2>Workspace activity</h2><span>Changes as they happen</span></div>')
+        markup('<div class="section-heading"><h2>Recent KB changes</h2><span>Latest four changes</span></div>')
         activity(workspace, 4)
 
 
@@ -240,14 +240,14 @@ def chunk_cards(chunks, limit=None):
 
 
 def knowledge_base(workspace):
-    heading("01 / Evidence management", "A knowledge base that moves with you.",
-            "Publish new evidence, correct a source, or start fresh. Every update rebuilds the live index.")
+    heading("01 / Documents", "Knowledge base",
+            "View and manage source documents. Publishing, saving, and removing documents update the search index.")
     stats(workspace)
-    library, add, codebase, controls = st.tabs(["Document library", "Add evidence", "Import codebase", "Reset & activity"],
+    library, add, codebase, controls = st.tabs(["Document library", "Add document", "Import codebase", "Reset & activity"],
                                      key="kb_tab", on_change="rerun")
     with library:
         if not workspace.documents:
-            st.info("Your knowledge base is empty. Add evidence or restore the baseline in Reset & activity.")
+            st.info("The knowledge base is empty. Use Add document or restore the baseline in Reset & activity.")
         else:
             search, version_filter, type_filter = st.columns([2, 1, 1])
             term = search.text_input("Find a document", placeholder="Search titles or source paths…")
@@ -306,7 +306,7 @@ def knowledge_base(workspace):
     with add:
         edit, preview = st.columns([1.4, 1], gap="large")
         with edit:
-            st.subheader("Bring in a new source")
+            st.subheader("Add a document")
             st.caption("Paste text or upload UTF-8 text, Markdown, Python, SQL, CSV, or JSON. Maximum 500 KB.")
             upload = st.file_uploader("Upload a source", type=["txt", "md", "py", "sql", "csv", "json"], max_upload_size=1)
             if upload is not None and st.button("Use uploaded content"):
@@ -320,14 +320,14 @@ def knowledge_base(workspace):
                 except (UnicodeError, ValueError) as error:
                     st.error(f"Cannot read this source as UTF-8 text: {error}")
             title = st.text_input("New document title", key="draft_title", placeholder="e.g. AMI retry owner clarification")
-            text = st.text_area("New source content", key="draft_text", height=300, placeholder="Paste the evidence you want the assistant to use…")
+            text = st.text_area("New source content", key="draft_text", height=300, placeholder="Paste the document text to index…")
             version, kind = st.columns(2)
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
             source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
             published = publish_source(workspace, title, text, system, source_type)
             st.button("Load AMI sample into editor", on_click=draft_sample)
         with preview:
-            st.subheader("What the index will see")
+            st.subheader("Chunk preview")
             if text.strip():
                 parts = split_chunks([preview_document(title, text, system)], max_chars=workspace.chunk_size)
                 strip(parts)
@@ -335,23 +335,23 @@ def knowledge_base(workspace):
                            f"{'Published and searchable' if published else 'Preview only until published'}")
                 chunk_cards(parts, 5)
             else:
-                markup('<div class="empty-state"><b>Every source starts here.</b><p>Add content to see exact '
-                       'chunk boundaries before it becomes searchable knowledge.</p></div>')
+                markup('<div class="empty-state"><b>No document text entered</b><p>Paste text or load a file to preview '
+                       'its chunks. Publish the document to add it to the search index.</p></div>')
     with codebase:
         import_codebase_view(workspace)
     with controls:
         reset, log = st.columns([1, 1.3], gap="large")
         with reset:
-            st.subheader("A clean slate, on demand")
-            st.write("Restore the checked-in corpus for another presentation, or clear the workspace to demonstrate ingestion from zero.")
+            st.subheader("Reset knowledge base")
+            st.write("Restore the original demo documents or remove all documents from the current knowledge base.")
             st.caption("These actions affect this session’s documents and search index. Original files remain intact. Earlier answers keep their revision labels.")
             restore_clicked = st.button("Restore baseline corpus", type="primary", use_container_width=True)
             clear_clicked = st.button("Clear knowledge base", use_container_width=True)
             feedback = action_feedback(workspace, "reset")
             if restore_clicked:
-                mutate(workspace, workspace.reset, "Baseline restored. Ready for another run.", "reset", feedback)
+                mutate(workspace, workspace.reset, "Baseline documents and default chunk size restored.", "reset", feedback)
             if clear_clicked:
-                mutate(workspace, lambda: workspace.reset(empty=True), "Knowledge base cleared. Add evidence to begin.", "reset", feedback)
+                mutate(workspace, lambda: workspace.reset(empty=True), "Knowledge base cleared. No documents are indexed.", "reset", feedback)
             st.download_button("Export workspace documents", json.dumps([asdict(d) for d in workspace.documents], indent=2),
                                file_name=f"continuity-revision-{workspace.revision}.json", mime="application/json", use_container_width=True)
         with log:
@@ -360,7 +360,7 @@ def knowledge_base(workspace):
 
 
 def import_codebase_view(workspace):
-    st.subheader("Bring in an entire codebase")
+    st.subheader("Import source files")
     st.write("Upload a ZIP of your repository to preserve its folder structure, or select several source files together.")
     st.caption("20 MB combined upload · Up to 500 text files / 10 MB expanded per batch · 500 KB per source. "
                "Dependencies, build output, binary files, and common credential filenames are skipped. Review the preview before publishing.")
@@ -415,18 +415,18 @@ def import_codebase_view(workspace):
 
 
 def chunk_explorer(workspace):
-    heading("02 / Inside the index", "One document. Every little detail.",
-            "See exactly where a source becomes searchable passages. Preview a different chunk size, then rebuild the index live.")
+    heading("02 / Index inspection", "Chunk explorer",
+            "Inspect how a selected document is split into passages. Preview a chunk size change, then apply it to all documents.")
     if not workspace.documents:
         st.info("The index is empty. Add a source in Knowledge base to visualize its chunks.")
-        st.button("Add evidence →", on_click=go, args=("Knowledge base",))
+        st.button("Open knowledge base", on_click=go, args=("Knowledge base",))
         return
     source, size = st.columns([1.8, 1], gap="large")
     counts = Counter(c.chunk_id.split("::part-")[0] for c in workspace.chunks)
     names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {len(d.text):,} chars · {counts[d.chunk_id]} indexed chunks"
              for d in workspace.documents}
     default = max(range(len(workspace.documents)), key=lambda i: len(workspace.documents[i].text))
-    selected = source.selectbox("Explore a document", list(names), index=default, format_func=lambda key: names[key])
+    selected = source.selectbox("Document to inspect", list(names), index=default, format_func=lambda key: names[key])
     document = next(d for d in workspace.documents if d.chunk_id == selected)
     chunk_size = size.slider("Maximum characters per chunk", 200, 3000, workspace.chunk_size, 100,
                              key=f"chunk-size-{workspace.revision}")
@@ -453,14 +453,14 @@ def chunk_explorer(workspace):
     st.caption("Matching colors connect the source text to its chunks. Boundaries use characters, not model tokens; passages have no overlap.")
     left, right = st.columns([1.35, 1], gap="large")
     with left:
-        st.subheader("The source")
+        st.subheader("Source text")
         markup(type_badge(document.source_type))
         markup(f'<div class="mono" style="margin-bottom:10px">{esc(document.source_file)}</div>')
         markup('<div class="source-canvas">' + ''.join(
             f'<mark title="Chunk {i + 1}" style="background:{COLORS[i % len(COLORS)]}">{esc(part.text)}</mark>'
             for i, part in enumerate(parts)) + '</div>')
     with right:
-        st.subheader("The chunks")
+        st.subheader("Document chunks")
         st.caption(f"{len(parts)} exact passages · Each keeps its source and system version")
         with st.container(height=620, border=False):
             chunk_cards(parts)
@@ -471,28 +471,66 @@ def chunk_explorer(workspace):
                      "source_type": document.source_type, "characters": len(parts[choice].text)})
 
 
+def parameter_help(label, explanation):
+    return (f'<details class="parameter-help" name="retrieval-help">'
+            f'<summary aria-label="About {esc(label)}" title="About {esc(label)}">?</summary>'
+            f'<div class="parameter-definition"><strong>{esc(label)}</strong><p>{esc(explanation)}</p></div></details>')
+
+
 def trace(result):
     diagnostic = result.get("diagnostics", {})
     candidates = result.get("retrieved_evidence", []) or result.get("evidence", [])
-    st.subheader("Retrieval, in the open")
-    st.caption("Actual ranked passages from this request. Scores are relevance scores, not confidence.")
     maximum = max((c.get("score") or 0 for c in candidates), default=1) or 1
+    rows = []
     for i, candidate in enumerate(candidates):
         score = candidate.get("score") or 0
-        markup(f'<div class="trace-row"><span class="trace-rank">{i + 1:02}</span><div class="trace-body">'
-               f'<b>{esc(candidate.get("section_title", "Source"))}</b><div class="trace-bar"><i style="width:{max(0, min(100, score / maximum * 100)):.1f}%"></i></div>'
-               f'</div><span class="trace-score">{score:.2f}</span></div>')
-    if not candidates:
-        st.caption("No relevant passages retrieved.")
-    st.divider()
-    for label, key in [("Retrieved", "retrieved_chunks"), ("Sent to model", "context_chunks"),
-                       ("Prompt bytes", "prompt_bytes"), ("Generation attempts", "attempts")]:
-        st.caption(f"{label}: {diagnostic.get(key, '—')}")
-    st.caption(f"Stage: {diagnostic.get('stage', 'retrieval')}")
-    if diagnostic.get("elapsed_seconds") is not None:
-        st.caption(f"Elapsed: {diagnostic['elapsed_seconds']:.1f}s")
-    with st.expander("Request diagnostics"):
-        st.json(diagnostic)
+        rows.append(
+            f'<div class="trace-row"><span class="trace-rank">{i + 1:02}</span>'
+            f'<div class="trace-body"><b>{esc(candidate.get("section_title", "Source"))}</b>'
+            f'<div class="trace-bar" aria-hidden="true"><i style="width:{max(0, min(100, score / maximum * 100)):.1f}%"></i></div></div>'
+            f'<span class="trace-score">{score:.2f}</span>'
+            + parameter_help(f"Relevance score for passage {i + 1}",
+                             "How closely this passage matches your question. Higher scores mean a stronger search match. "
+                             "This is not a percentage or a measure of answer accuracy. The bar compares it with the highest score in this list.")
+            + '</div>'
+        )
+    elapsed = diagnostic.get("elapsed_seconds")
+    stage = diagnostic.get("stage", "retrieval")
+    stage_definition = {
+        "configuration": "The request reached the model setup check. Review any configuration error shown with the answer.",
+        "retrieval": "The request reached the source search step. If no matching passages are found, answer generation does not start.",
+        "context": "The request reached input preparation, where source passages are fitted into the model's input limit.",
+        "generation": "The request reached the model call. If it failed, review the error shown with the answer.",
+        "validation": "The request reached the checks for response format and valid source references.",
+        "complete": "The model returned an answer and the response format and citation checks finished. This does not guarantee that every claim is correct.",
+    }.get(stage, "The last processing step recorded for this request.")
+    metrics = [
+        ("Retrieved passages", diagnostic.get("retrieved_chunks", "—"),
+         "The number of matching passages selected by the search step, before fitting them into the model's input limit."),
+        ("Sent to model", diagnostic.get("context_chunks", "—"),
+         "The number of passages included with your question for the model to read. This can be lower than Retrieved passages if the input is too large."),
+        ("Prompt size", f"{diagnostic['prompt_bytes']:,} bytes" if "prompt_bytes" in diagnostic else "—",
+         "The size of the initial instructions, question, and source text, measured in UTF-8 bytes. Bytes measure data size; they are not words or model tokens."),
+        ("Generation attempts", diagnostic.get("attempts", "—"),
+         "How many times the app tried to generate this answer. Usually 1; it can retry once if the first response fails its format or citation checks."),
+        ("Stage", str(stage).replace("_", " ").capitalize(), stage_definition),
+        ("Elapsed time", f"{elapsed:.1f}s" if elapsed is not None else "—",
+         "Time spent preparing the model input, generating the answer, and checking it, including any retry. This timer starts after the source search. A dash means the value was not recorded."),
+    ]
+    with st.container(key="retrieval_details", border=True):
+        markup('<div class="retrieval-heading"><h3>Retrieval details</h3>'
+               '<p>Source matches and processing details for this answer.</p></div>')
+        markup('<div class="retrieval-list-heading"><span>Source passages</span>'
+               + parameter_help("Passage order", "The position of each passage in the selected source list. In Compare both systems mode, legacy and modernized passages alternate so both systems are represented.")
+               + '</div>' + (''.join(rows) or '<p class="retrieval-empty">No relevant passages retrieved.</p>'))
+        markup('<dl class="retrieval-metrics">' + ''.join(
+            f'<div class="retrieval-metric"><dt>{esc(label)}</dt><dd>{esc(value)}</dd>'
+            + parameter_help(label, explanation + (" This value was not recorded for this request." if value == "—" else ""))
+            + '</div>' for label, value, explanation in metrics
+        ) + '</dl>')
+        with st.expander("Technical request data"):
+            st.caption("The recorded values for this request. Missing values were not recorded.")
+            st.json(diagnostic)
 
 
 def show_sources(entry):
@@ -527,21 +565,22 @@ def answer_body(entry):
         st.warning(result["summary"])
     else:
         st.markdown(result["summary"])
-    st.caption(f"KB revision {entry['revision']:02} · {entry['scope']} · {len(result.get('evidence', []))} cited passages")
+    scope_label = {"legacy": "Legacy", "mod_v1": "Modernized", "compare": "Both systems"}[entry["scope"]]
+    st.caption(f"KB revision {entry['revision']:02} · {scope_label} · {len(result.get('evidence', []))} cited passages")
 
 
 def live_qa(workspace):
-    heading("03 / Evidence into answers", "Ask. Change the evidence. Ask again.",
-            "Every answer is generated live from this workspace. Pin a baseline answer to make the impact of new knowledge visible.")
+    heading("03 / Questions and answers", "Live Q&A",
+            "Generate answers from the indexed documents. Review source citations or pin an answer to compare it after a KB update.")
     st.session_state.setdefault("question", st.session_state.get("last_question", AMI_QUESTION))
     st.session_state.setdefault("scope", st.session_state.get("last_scope", "legacy"))
     st.session_state.setdefault("answers", [])
     with st.form("ask-form"):
         question = st.text_area("Your question", key="question", height=85)
         scope_col, action = st.columns([1, 2], vertical_alignment="bottom")
-        scope = scope_col.selectbox("Evidence scope", ["legacy", "mod_v1", "compare"], key="scope",
+        scope = scope_col.selectbox("Source scope", ["legacy", "mod_v1", "compare"], key="scope",
                                     format_func=lambda v: {"legacy": "Legacy only", "mod_v1": "Modernized only", "compare": "Compare both systems"}[v])
-        submitted = action.form_submit_button("Generate live answer ↗", type="primary", use_container_width=True)
+        submitted = action.form_submit_button("Generate answer", type="primary", use_container_width=True)
     # Keep progress and results at fixed positions on every rerun. Clearing the
     # results before a slow model call prevents the prior answer lingering as a
     # stale, duplicated panel while the new one is being rendered.
@@ -573,9 +612,9 @@ def live_qa(workspace):
 
 def render_answer_results(workspace):
     if not st.session_state.answers:
-        markup('<div class="empty-state"><b>Let the evidence speak.</b><p>Start with the AMI question to reveal a knowledge gap. '
-               'Then publish the owner clarification and watch a real model use the new source.</p></div>')
-        st.button("Add the missing evidence →", on_click=draft_sample)
+        markup('<div class="empty-state"><b>No answers generated</b><p>Enter a question and choose a source scope, then select Generate answer. '
+               'For the AMI demo, generate a baseline answer before publishing the owner clarification.</p></div>')
+        st.button("Load AMI clarification", on_click=draft_sample)
         return
     answers = st.session_state.answers
     index = st.selectbox("Answer history", range(len(answers) - 1, -1, -1),
@@ -587,11 +626,11 @@ def render_answer_results(workspace):
         revision_notice.info(f"This answer used revision {entry['revision']:02}. The current KB is revision {workspace.revision:02}. Generate again to use current evidence.")
     main, detail = st.columns([1.8, 1], gap="large")
     with main:
-        st.subheader("The answer")
+        st.subheader("Generated answer")
         answer_body(entry)
         pin, update = st.columns(2)
-        pin.button("Pin as before", on_click=pin_answer, args=(entry,), use_container_width=True)
-        update.button("Add new evidence +", on_click=draft_sample, use_container_width=True)
+        pin.button("Pin baseline", on_click=pin_answer, args=(entry,), use_container_width=True)
+        update.button("Load AMI clarification", on_click=draft_sample, use_container_width=True)
         before = st.session_state.get("before_answer")
         with st.container(key="qa_comparison"):
             if before:
@@ -616,14 +655,14 @@ def render_answer_results(workspace):
 
 
 def run():
-    st.set_page_config(page_title="Continuity · Live modernization studio",
+    st.set_page_config(page_title="Continuity · Knowledge workspace",
                        page_icon=str(Path(__file__).with_name("continuity.svg")),
                        layout="wide", initial_sidebar_state="expanded")
     markup('<style>' + Path(__file__).with_name("ui.css").read_text(encoding="utf-8") + '</style>')
     startup_slot = st.empty()
     if "workspace" not in st.session_state:
         with startup_slot.container():
-            with st.spinner("Preparing your live knowledge workspace…"):
+            with st.spinner("Loading documents and building the search index…"):
                 st.session_state.workspace = LiveWorkspace()
         startup_slot.empty()
     workspace = st.session_state.workspace
@@ -634,7 +673,7 @@ def run():
         st.selectbox("Navigate workspace", PAGES, key="mobile_page",
                      on_change=lambda: go(st.session_state.mobile_page))
     markup(f'<div class="topline"><span>Workspace &nbsp;/&nbsp; <strong>{esc(page)}</strong></span>'
-           f'<span class="badge"><i class="dot"></i> LIVE WORKSPACE &nbsp;·&nbsp; REV {workspace.revision:02}</span></div>')
+           f'<span class="badge"><i class="dot"></i> KB REVISION {workspace.revision:02}</span></div>')
     page_slot = st.empty()
     with page_slot.container(key=f"page_{PAGES.index(page)}"):
         {"Overview": overview, "Knowledge base": knowledge_base, "Chunk explorer": chunk_explorer, "Live Q&A": live_qa}[page](workspace)

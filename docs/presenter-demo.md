@@ -10,11 +10,11 @@ The sidebar names the configured provider/model; it is not a health check.
 
 1. **Overview:** introduce the real pipeline: source documents, chunking,
    retrieval, and grounded generation. Counts reflect the current index.
-2. **Start live demo:** generate a live answer to the exact retry
+2. **Load demo question:** click **Generate answer** for the exact retry
    limits/timings question in Legacy scope. Open the cited evidence. The
    baseline has only a general backoff description and an old email about
-   missing documentation. Click **Pin as before**.
-3. **Add new evidence:** click **Add new evidence +**. The Add evidence tab
+   missing documentation. Click **Pin baseline**.
+3. **Add new evidence:** click **Load AMI clarification**. The Add document tab
    opens with a synthetic owner clarification in an editable draft. Read or
    edit the values, watch the chunk preview, then click **Publish to knowledge
    base**. The KB revision and document/chunk counts update immediately.
@@ -23,7 +23,8 @@ The sidebar names the configured provider/model; it is not a health check.
    the actual index for all documents. The colored source text and chunk cards
    show the same exact passages, with no overlap.
 5. **Live Q&A:** generate the same question again. Open **Before & after**,
-   inspect the new citation, and show the retrieval scores and request details.
+   inspect the new citation, and show the **Retrieval details** card. Click a
+   circled **?** beside a score or metric for its definition.
    The newly supplied values are 4 retries with 5/10/20/40-second delays; this
    is sample evidence, not a prepared answer. Model responses can vary.
 6. **Knowledge base → Reset & activity:** restore the baseline for another

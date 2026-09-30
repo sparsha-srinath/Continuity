@@ -25,9 +25,9 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     app.radio[0].set_value('Knowledge base').run()
     button(app, 'Load AMI sample into editor').click().run()
     assert not app.exception
-    assert app.session_state['kb_tab'] == 'Add evidence'
+    assert app.session_state['kb_tab'] == 'Add document'
     assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
-    button(app, 'Publish to knowledge base →').click().run()
+    button(app, 'Publish to knowledge base').click().run()
     assert not app.exception
     assert len(workspace.documents) == baseline + 1
     assert workspace.revision == 2
@@ -37,7 +37,7 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     assert button(app, 'Published to knowledge base ✓').disabled
     assert any('Ready to use in Live Q&A.' in message.value for message in app.success)
     field(app, 'text_area', 'New source content').set_value(AMI_UPDATE + '\nAdditional evidence.').run()
-    assert not button(app, 'Publish to knowledge base →').disabled
+    assert not button(app, 'Publish to knowledge base').disabled
     assert len(workspace.documents) == baseline + 1
     document_id = workspace.documents[-1].chunk_id
     field(app, 'selectbox', 'Source document').set_value(document_id).run()
@@ -72,14 +72,14 @@ def test_publish_failure_preserves_draft_and_allows_retry(monkeypatch):
     def fail(*args, **kwargs):
         raise RuntimeError('Index temporarily unavailable')
     monkeypatch.setattr(LiveWorkspace, 'upsert', fail)
-    button(app, 'Publish to knowledge base →').click().run()
+    button(app, 'Publish to knowledge base').click().run()
     assert not app.exception
     assert workspace.revision == 1
     assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
     assert any('Could not publish: Index temporarily unavailable' in message.value for message in app.error)
-    assert not button(app, 'Publish to knowledge base →').disabled
+    assert not button(app, 'Publish to knowledge base').disabled
     monkeypatch.setattr(LiveWorkspace, 'upsert', original)
-    button(app, 'Publish to knowledge base →').click().run()
+    button(app, 'Publish to knowledge base').click().run()
     assert not app.exception
     assert not app.error
     assert workspace.revision == 2
@@ -92,22 +92,22 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
         return json.dumps({'summary': 'Live test answer from selected evidence.', 'citations': [0], 'insufficient_evidence': False})
     monkeypatch.setattr(LiveWorkspace, 'assistant', lambda self: original(self, provider_config=ProviderConfig(), answer_generator=generator))
     app = AppTest.from_file(APP, default_timeout=30).run()
-    button(app, 'Start live demo ↗').click().run()
+    button(app, 'Load demo question').click().run()
     assert field(app, 'text_area', 'Your question').value == AMI_QUESTION
-    button(app, 'Generate live answer ↗').click().run()
+    button(app, 'Generate answer').click().run()
     assert not app.exception
-    button(app, 'Pin as before').click().run()
+    button(app, 'Pin baseline').click().run()
     before = app.session_state['before_answer']
     assert before['revision'] == 1
     assert before['documents']
     assert any('Baseline pinned.' in message.value for message in app.info)
     assert not any('**Before · revision' in item.value for item in app.markdown)
-    assert len([b for b in app.button if b.label == 'Pin as before']) == 1
-    button(app, 'Add new evidence +').click().run()
-    button(app, 'Publish to knowledge base →').click().run()
+    assert len([b for b in app.button if b.label == 'Pin baseline']) == 1
+    button(app, 'Load AMI clarification').click().run()
+    button(app, 'Publish to knowledge base').click().run()
     app.radio[0].set_value('Live Q&A').run()
     assert any('current KB is revision 02' in message.value for message in app.info)
-    button(app, 'Generate live answer ↗').click().run()
+    button(app, 'Generate answer').click().run()
     assert not app.exception
     assert len(app.session_state['answers']) == 2
     assert app.session_state['answers'][-1]['revision'] == 2
@@ -130,7 +130,7 @@ def test_model_failure_keeps_sources_visible(monkeypatch):
     monkeypatch.setattr(LiveWorkspace, 'assistant', lambda self: original(self, provider_config=ProviderConfig()))
     app = AppTest.from_file(APP, default_timeout=30).run()
     app.radio[0].set_value('Live Q&A').run()
-    button(app, 'Generate live answer ↗').click().run()
+    button(app, 'Generate answer').click().run()
     assert not app.exception
     assert app.error
     assert any('Retrieved sources' in item.value for item in app.markdown)

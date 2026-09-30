@@ -96,14 +96,61 @@ def activity(workspace, limit=5):
                    f'<span class="rev">REV {e["revision"]:02}</span></div>' for e in workspace.events[:limit]))
 
 
-def mutate(workspace, operation, message):
+def action_feedback(workspace, key):
+    slot = st.empty()
+    receipt = st.session_state.get("action_receipt", {})
+    if receipt.get("key") == key and receipt.get("revision") == workspace.revision:
+        slot.success(receipt["message"])
+    return slot
+
+
+def mutate(workspace, operation, message, feedback_key, feedback_slot):
     try:
-        with st.spinner("Updating the knowledge index…"):
-            operation()
-        st.session_state.flash = message
+        with feedback_slot.container():
+            with st.status("Updating the knowledge index…", expanded=True):
+                operation()
+        st.session_state.action_receipt = {"key": feedback_key, "message": message, "revision": workspace.revision}
         st.rerun()
     except (ValueError, RuntimeError) as error:
-        st.error(str(error))
+        feedback_slot.error(str(error))
+
+
+def publish_source(workspace, title, text, system, source_type):
+    receipt = st.session_state.get("publish_receipt", {})
+    published = any(
+        d.chunk_id == receipt.get("document_id")
+        and (d.section_title, d.text, d.system_version, d.source_type)
+        == (title.strip(), text, system, source_type)
+        for d in workspace.documents
+    )
+    button_slot = st.empty()
+    feedback_slot = st.empty()
+    clicked = button_slot.button(
+        "Published to knowledge base ✓" if published else "Publish to knowledge base →",
+        key="publish_source", type="primary", use_container_width=True,
+        disabled=published or not title.strip() or not text.strip(),
+    )
+    if clicked and not published:
+        button_slot.button("Publishing…", key="publish_source_busy", type="primary",
+                           disabled=True, use_container_width=True)
+        st.session_state.pop("publish_error", None)
+        try:
+            with feedback_slot.container():
+                with st.status("Publishing your source…", expanded=True):
+                    st.write("Adding the document and updating the search index. Please wait.")
+                    document_id = workspace.upsert(title, text, system, source_type)
+            st.session_state.publish_receipt = {"document_id": document_id, "revision": workspace.revision}
+        except (ValueError, RuntimeError) as error:
+            st.session_state.publish_error = f"Could not publish: {error} Your draft is still here. Try again."
+        st.rerun()
+    with feedback_slot.container():
+        if st.session_state.get("publish_error"):
+            st.error(st.session_state.publish_error)
+        elif published:
+            count = len(workspace.document_chunks(receipt["document_id"]))
+            st.success(f"Published: {title.strip()} · Revision {receipt['revision']:02} · "
+                       f"{count} indexed {'chunk' if count == 1 else 'chunks'}. Ready to use in Live Q&A.")
+    return published
 
 
 def sidebar(workspace):
@@ -222,7 +269,8 @@ def knowledge_base(workspace):
                 ], height=min(360, 36 * (len(filtered) + 1)))
                 names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
                 selected = st.selectbox("Source document", list(names), format_func=lambda key: names[key],
-                                        index=None, placeholder="Choose a document to inspect or edit…")
+                                        key="source_document", index=None, placeholder="Choose a document to inspect or edit…")
+                save_clicked = remove_clicked = False
                 if selected is not None:
                     document = next(d for d in filtered if d.chunk_id == selected)
                     epoch = f"{workspace.revision}-{selected}"
@@ -237,12 +285,6 @@ def knowledge_base(workspace):
                     kinds = list(dict.fromkeys([*TYPE_LABELS, document.source_type]))
                     kind = type_editor.selectbox("Document type", kinds, index=kinds.index(document.source_type),
                                                   format_func=type_label, key=f"edit-type-{epoch}")
-                    save, remove = st.columns([2, 1])
-                    if save.button("Save & reindex", type="primary", use_container_width=True):
-                        mutate(workspace, lambda: workspace.upsert(title, content, system, kind, selected),
-                               "Document updated. The new content is now searchable.")
-                    if remove.button("Remove source", use_container_width=True):
-                        mutate(workspace, lambda: workspace.remove(selected), "Source and its chunks removed from the index.")
                     with st.expander("Preview chunks", expanded=False):
                         st.caption("How this document’s current text will be split when saved. Use Chunk explorer for detailed inspection.")
                         parts = split_chunks([replace(document, text=content)], max_chars=workspace.chunk_size)
@@ -251,6 +293,16 @@ def knowledge_base(workspace):
                         chunk_cards(parts, 6)
                         if len(parts) > 6:
                             st.caption(f"Showing 6 of {len(parts)} chunks. Explore all chunks after saving.")
+                    save, remove = st.columns([2, 1])
+                    save_clicked = save.button("Save & reindex", type="primary", use_container_width=True)
+                    remove_clicked = remove.button("Remove source", use_container_width=True)
+                feedback = action_feedback(workspace, "document_editor")
+                if save_clicked:
+                    mutate(workspace, lambda: workspace.upsert(title, content, system, kind, selected),
+                           "Document updated. The new content is now searchable.", "document_editor", feedback)
+                if remove_clicked:
+                    mutate(workspace, lambda: workspace.remove(selected), "Source and its chunks removed from the index.",
+                           "document_editor", feedback)
     with add:
         edit, preview = st.columns([1.4, 1], gap="large")
         with edit:
@@ -272,16 +324,15 @@ def knowledge_base(workspace):
             version, kind = st.columns(2)
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
             source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
-            if st.button("Publish to knowledge base →", type="primary", disabled=not title.strip() or not text.strip()):
-                mutate(workspace, lambda: workspace.upsert(title, text, system, source_type),
-                       "New evidence published. Ask your question again to use it.")
+            published = publish_source(workspace, title, text, system, source_type)
             st.button("Load AMI sample into editor", on_click=draft_sample)
         with preview:
             st.subheader("What the index will see")
             if text.strip():
                 parts = split_chunks([preview_document(title, text, system)], max_chars=workspace.chunk_size)
                 strip(parts)
-                st.caption(f"{len(parts)} chunks ready to index · Preview only until published")
+                st.caption(f"{len(parts)} {'chunk' if len(parts) == 1 else 'chunks'} · "
+                           f"{'Published and searchable' if published else 'Preview only until published'}")
                 chunk_cards(parts, 5)
             else:
                 markup('<div class="empty-state"><b>Every source starts here.</b><p>Add content to see exact '
@@ -294,10 +345,13 @@ def knowledge_base(workspace):
             st.subheader("A clean slate, on demand")
             st.write("Restore the checked-in corpus for another presentation, or clear the workspace to demonstrate ingestion from zero.")
             st.caption("These actions affect this session’s documents and search index. Original files remain intact. Earlier answers keep their revision labels.")
-            if st.button("Restore baseline corpus", type="primary", use_container_width=True):
-                mutate(workspace, workspace.reset, "Baseline restored. Ready for another run.")
-            if st.button("Clear knowledge base", use_container_width=True):
-                mutate(workspace, lambda: workspace.reset(empty=True), "Knowledge base cleared. Add evidence to begin.")
+            restore_clicked = st.button("Restore baseline corpus", type="primary", use_container_width=True)
+            clear_clicked = st.button("Clear knowledge base", use_container_width=True)
+            feedback = action_feedback(workspace, "reset")
+            if restore_clicked:
+                mutate(workspace, workspace.reset, "Baseline restored. Ready for another run.", "reset", feedback)
+            if clear_clicked:
+                mutate(workspace, lambda: workspace.reset(empty=True), "Knowledge base cleared. Add evidence to begin.", "reset", feedback)
             st.download_button("Export workspace documents", json.dumps([asdict(d) for d in workspace.documents], indent=2),
                                file_name=f"continuity-revision-{workspace.revision}.json", mime="application/json", use_container_width=True)
         with log:
@@ -352,9 +406,12 @@ def import_codebase_view(workspace):
         st.code(next(source.text for source in plan.files if source.path == inspect), language="text", wrap_lines=True)
     st.caption("One publish updates the whole batch. Reimporting the same codebase name, version, and path updates that source; "
                "other sources already in the KB are kept. Files are indexed as text and are never executed.")
-    if st.button(f"Import {len(selected)} files & index", type="primary", disabled=not selected or not project.strip()):
+    import_clicked = st.button(f"Import {len(selected)} files & index", type="primary", disabled=not selected or not project.strip())
+    feedback = action_feedback(workspace, "codebase_import")
+    if import_clicked:
         mutate(workspace, lambda: workspace.import_codebase(selected, project, version),
-               f"Imported {len(selected)} files from {project.strip()}. Open Document library or Chunk explorer to inspect them.")
+               f"Imported {len(selected)} files from {project.strip()}. Open Document library or Chunk explorer to inspect them.",
+               "codebase_import", feedback)
 
 
 def chunk_explorer(workspace):
@@ -387,8 +444,11 @@ def chunk_explorer(workspace):
         single_chunk_notice.info(f"One chunk is expected: this document has {len(document.text):,} characters and the selected limit is "
                 f"{chunk_size:,}. This view shows one document, not the entire KB. "
                 "Choose a longer document or reduce the slider to preview more chunks.")
-    if st.button("Apply chunk size & rebuild index", type="primary", disabled=not changed):
-        mutate(workspace, lambda: workspace.rebuild(chunk_size), "Index rebuilt with the new chunk boundaries.")
+    rebuild_clicked = st.button("Apply chunk size & rebuild index", type="primary", disabled=not changed)
+    feedback = action_feedback(workspace, "chunk_rebuild")
+    if rebuild_clicked:
+        mutate(workspace, lambda: workspace.rebuild(chunk_size), "Index rebuilt with the new chunk boundaries.",
+               "chunk_rebuild", feedback)
     strip(parts)
     st.caption("Matching colors connect the source text to its chunks. Boundaries use characters, not model tokens; passages have no overlap.")
     left, right = st.columns([1.35, 1], gap="large")
@@ -575,11 +635,6 @@ def run():
                      on_change=lambda: go(st.session_state.mobile_page))
     markup(f'<div class="topline"><span>Workspace &nbsp;/&nbsp; <strong>{esc(page)}</strong></span>'
            f'<span class="badge"><i class="dot"></i> LIVE WORKSPACE &nbsp;·&nbsp; REV {workspace.revision:02}</span></div>')
-    # An optional notice must not move the page's delta path: otherwise the
-    # frontend keeps the old page beside the new one until the rerun finishes.
-    notice_slot = st.empty()
-    if st.session_state.get("flash"):
-        notice_slot.success(st.session_state.pop("flash"))
     page_slot = st.empty()
     with page_slot.container(key=f"page_{PAGES.index(page)}"):
         {"Overview": overview, "Knowledge base": knowledge_base, "Chunk explorer": chunk_explorer, "Live Q&A": live_qa}[page](workspace)

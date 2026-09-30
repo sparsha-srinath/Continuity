@@ -31,6 +31,22 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     assert not app.exception
     assert len(workspace.documents) == baseline + 1
     assert workspace.revision == 2
+    assert button(app, 'Published to knowledge base ✓').disabled
+    assert any('Published: AMI retry configuration' in message.value for message in app.success)
+    app.run()
+    assert button(app, 'Published to knowledge base ✓').disabled
+    assert any('Ready to use in Live Q&A.' in message.value for message in app.success)
+    field(app, 'text_area', 'New source content').set_value(AMI_UPDATE + '\nAdditional evidence.').run()
+    assert not button(app, 'Publish to knowledge base →').disabled
+    assert len(workspace.documents) == baseline + 1
+    document_id = workspace.documents[-1].chunk_id
+    field(app, 'selectbox', 'Source document').set_value(document_id).run()
+    field(app, 'text_input', 'Document title').set_value('Updated AMI clarification').run()
+    button(app, 'Save & reindex').click().run()
+    assert not app.exception
+    assert field(app, 'selectbox', 'Source document').value == document_id
+    assert field(app, 'text_input', 'Document title').value == 'Updated AMI clarification'
+    assert any('Document updated.' in message.value for message in app.success)
     app.radio[0].set_value('Chunk explorer').run()
     app.slider[0].set_value(400).run()
     assert workspace.chunk_size == 1800
@@ -45,6 +61,29 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     assert not app.exception
     assert len(workspace.documents) == baseline
     assert workspace.chunk_size == 1800
+
+
+def test_publish_failure_preserves_draft_and_allows_retry(monkeypatch):
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    app.radio[0].set_value('Knowledge base').run()
+    button(app, 'Load AMI sample into editor').click().run()
+    workspace = app.session_state['workspace']
+    original = LiveWorkspace.upsert
+    def fail(*args, **kwargs):
+        raise RuntimeError('Index temporarily unavailable')
+    monkeypatch.setattr(LiveWorkspace, 'upsert', fail)
+    button(app, 'Publish to knowledge base →').click().run()
+    assert not app.exception
+    assert workspace.revision == 1
+    assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
+    assert any('Could not publish: Index temporarily unavailable' in message.value for message in app.error)
+    assert not button(app, 'Publish to knowledge base →').disabled
+    monkeypatch.setattr(LiveWorkspace, 'upsert', original)
+    button(app, 'Publish to knowledge base →').click().run()
+    assert not app.exception
+    assert not app.error
+    assert workspace.revision == 2
+    assert button(app, 'Published to knowledge base ✓').disabled
 
 
 def test_live_question_pin_update_and_source_snapshots(monkeypatch):

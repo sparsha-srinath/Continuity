@@ -434,7 +434,6 @@ def chunk_explorer(workspace):
     if rebuild_clicked:
         mutate(workspace, lambda: workspace.rebuild(chunk_size), "Index rebuilt with the new chunk boundaries.",
                "chunk_rebuild", feedback)
-    strip(parts)
     st.caption("Matching colors connect the source text to its chunks. Boundaries use characters, not model tokens; passages have no overlap.")
     left, right = st.columns([1.35, 1], gap="large")
     with left:

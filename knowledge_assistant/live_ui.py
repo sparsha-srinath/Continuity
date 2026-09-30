@@ -153,10 +153,6 @@ def sidebar(workspace):
                '<div class="side-label">Knowledge workspace</div>')
         st.radio("Workspace navigation", PAGES, key="page", label_visibility="collapsed")
         st.divider()
-        st.download_button("Download demo reference",
-                           (Path(__file__).resolve().parents[1] / "docs" / "demo-sample-data.md").read_text(encoding="utf-8"),
-                           file_name="demo-sample-data.md", mime="text/markdown", use_container_width=True)
-        st.divider()
         try:
             config = load_provider_config()
             model = config.model or "No model configured"

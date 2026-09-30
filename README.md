@@ -65,7 +65,7 @@ All answers use live retrieval and model generation; there are no prepared
 answers. Configure a provider below for Q&A. Evidence editing and chunk
 exploration work without a running model. See [the live presenter workflow](docs/presenter-demo.md)
 and [copy-and-paste questions and sample documents](docs/demo-sample-data.md).
-Questions and document drafts start empty; the sample reference can also be downloaded from the sidebar.
+Questions and document drafts start empty; keep the sample reference open beside the app.
 
 ## Synthetic data and MCP demo
 

@@ -7,7 +7,7 @@ installing requirements. Start your configured model before presenting.
 The sidebar names the configured provider/model; it is not a health check.
 
 Keep [the copy-and-paste demo reference](demo-sample-data.md) open beside the
-app, or use **Download demo reference** in the sidebar. Questions and document
+app. Questions and document
 drafts start empty; the reference contains all text needed for the steps below.
 
 ## Five-minute presentation

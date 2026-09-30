@@ -14,8 +14,8 @@ The sidebar names the configured provider/model; it is not a health check.
    limits/timings question in Legacy scope. Open the cited evidence. The
    baseline has only a general backoff description and an old email about
    missing documentation. Click **Pin baseline**.
-3. **Add new evidence:** open **Knowledge base → Add document** and click
-   **Load AMI sample into editor** to load a synthetic owner clarification. Read or
+3. **Add new evidence:** click **Add document** or open **Knowledge base → Add document**,
+   then click **Load sample document** to load a synthetic AMI owner clarification. Read or
    edit the values, watch the chunk preview, then click **Publish to knowledge
    base**. The KB revision and document/chunk counts update immediately.
 4. **Chunk explorer:** select the new source. Adjust the character limit to

@@ -54,6 +54,11 @@ def go(page):
     st.session_state.page = page
 
 
+def add_document():
+    st.session_state.page = "Knowledge base"
+    st.session_state.kb_tab = "Add document"
+
+
 def draft_sample():
     st.session_state.draft_title = "AMI retry configuration — owner clarification"
     st.session_state.draft_text = AMI_UPDATE
@@ -325,7 +330,7 @@ def knowledge_base(workspace):
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
             source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
             published = publish_source(workspace, title, text, system, source_type)
-            st.button("Load AMI sample into editor", on_click=draft_sample)
+            st.button("Load sample document", on_click=draft_sample)
         with preview:
             st.subheader("Chunk preview")
             if text.strip():
@@ -613,6 +618,7 @@ def live_qa(workspace):
 def render_answer_results(workspace):
     if not st.session_state.answers:
         markup('<div class="empty-state"><b>No answers generated</b><p>Enter a question and choose a source scope, then select Generate answer.</p></div>')
+        st.button("Add document", on_click=add_document)
         return
     answers = st.session_state.answers
     index = st.selectbox("Answer history", range(len(answers) - 1, -1, -1),
@@ -626,7 +632,9 @@ def render_answer_results(workspace):
     with main:
         st.subheader("Generated answer")
         answer_body(entry)
-        st.button("Pin baseline", on_click=pin_answer, args=(entry,))
+        pin, update = st.columns(2)
+        pin.button("Pin baseline", on_click=pin_answer, args=(entry,), use_container_width=True)
+        update.button("Add document", on_click=add_document, use_container_width=True)
         before = st.session_state.get("before_answer")
         with st.container(key="qa_comparison"):
             if before:

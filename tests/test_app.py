@@ -23,7 +23,7 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     workspace = app.session_state['workspace']
     baseline = len(workspace.documents)
     app.radio[0].set_value('Knowledge base').run()
-    button(app, 'Load AMI sample into editor').click().run()
+    button(app, 'Load sample document').click().run()
     assert not app.exception
     assert app.session_state['kb_tab'] == 'Add document'
     assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
@@ -66,7 +66,7 @@ def test_workspace_pages_preview_publish_clear_and_restore():
 def test_publish_failure_preserves_draft_and_allows_retry(monkeypatch):
     app = AppTest.from_file(APP, default_timeout=30).run()
     app.radio[0].set_value('Knowledge base').run()
-    button(app, 'Load AMI sample into editor').click().run()
+    button(app, 'Load sample document').click().run()
     workspace = app.session_state['workspace']
     original = LiveWorkspace.upsert
     def fail(*args, **kwargs):
@@ -103,8 +103,10 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
     assert any('Baseline pinned.' in message.value for message in app.info)
     assert not any('**Before · revision' in item.value for item in app.markdown)
     assert len([b for b in app.button if b.label == 'Pin baseline']) == 1
-    app.radio[0].set_value('Knowledge base').run()
-    button(app, 'Load AMI sample into editor').click().run()
+    button(app, 'Add document').click().run()
+    assert app.session_state['kb_tab'] == 'Add document'
+    assert field(app, 'text_area', 'New source content').value == ''
+    button(app, 'Load sample document').click().run()
     button(app, 'Publish to knowledge base').click().run()
     app.radio[0].set_value('Live Q&A').run()
     assert any('current KB is revision 02' in message.value for message in app.info)

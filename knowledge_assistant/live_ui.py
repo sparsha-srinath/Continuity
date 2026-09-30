@@ -153,9 +153,6 @@ def sidebar(workspace):
                '<div class="side-label">Knowledge workspace</div>')
         st.radio("Workspace navigation", PAGES, key="page", label_visibility="collapsed")
         st.divider()
-        markup('<div class="side-label">Demo steps</div>'
-               '<div class="side-note">01 &nbsp; Generate a baseline answer<br>'
-               '02 &nbsp; Add or update a document<br>03 &nbsp; Generate again and compare</div>')
         st.download_button("Download demo reference",
                            (Path(__file__).resolve().parents[1] / "docs" / "demo-sample-data.md").read_text(encoding="utf-8"),
                            file_name="demo-sample-data.md", mime="text/markdown", use_container_width=True)

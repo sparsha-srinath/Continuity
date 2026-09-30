@@ -2,12 +2,17 @@
 
 import html
 import json
+from base64 import b64encode
+from collections import Counter
+from hashlib import sha256
 from dataclasses import asdict, replace
 from pathlib import Path
 
 import streamlit as st
+import pandas as pd
 
 from .llm_provider import ProviderError, load_provider_config
+from .codebase_import import prepare_codebase
 from .models import SourceChunk
 from .retrieval import split_chunks
 from .workspace import AMI_QUESTION, AMI_UPDATE, LiveWorkspace
@@ -15,6 +20,10 @@ from .workspace import AMI_QUESTION, AMI_UPDATE, LiveWorkspace
 
 PAGES = ["Overview", "Knowledge base", "Chunk explorer", "Live Q&A"]
 COLORS = ["#d6eac0", "#e5dff4", "#f5e6b8", "#cce8e3", "#f0d8c8", "#d8e3f4"]
+TYPE_LABELS = {"doc": "▤ Document", "email": "✉ Email", "code": "⌘ Code",
+               "ticket": "◈ Ticket", "runbook": "☷ Runbook", "spreadsheet": "▦ Spreadsheet"}
+TYPE_COLORS = {"doc": "#e2ebfa", "email": "#ece2f6", "code": "#dceedd",
+               "ticket": "#f8ebc9", "runbook": "#daeeeb", "spreadsheet": "#f4e0d3"}
 
 
 def esc(value):
@@ -24,6 +33,21 @@ def esc(value):
 def markup(value):
     # HTML rendering keeps newlines / Markdown syntax in source passages literal.
     st.html(value)
+
+
+def type_label(kind):
+    return TYPE_LABELS.get(kind, kind.title())
+
+
+def type_badge(kind):
+    return f'<span class="type-badge" style="background:{TYPE_COLORS.get(kind, "#e8ece5")}">{esc(type_label(kind))}</span>'
+
+
+def document_table(rows, **kwargs):
+    frame = pd.DataFrame(rows)
+    colors = {type_label(kind): color for kind, color in TYPE_COLORS.items()}
+    styled = frame.style.map(lambda value: f"background-color: {colors.get(value, '#e8ece5')}; color: #29432f; font-weight: 600;", subset=["Type"])
+    st.dataframe(styled, hide_index=True, use_container_width=True, **kwargs)
 
 
 def go(page):
@@ -76,15 +100,16 @@ def mutate(workspace, operation, message):
 
 def sidebar(workspace):
     with st.sidebar:
-        markup('<div class="wordmark"><b>c</b>continuity<span style="color:#afd995">.</span></div>'
+        logo = b64encode(Path(__file__).with_name("continuity.svg").read_bytes()).decode("ascii")
+        markup(f'<div class="wordmark"><img class="continuity-mark" src="data:image/svg+xml;base64,{logo}" '
+               'alt="Continuity — an unbroken orbit">continuity<span class="brand-period">.</span></div>'
                '<div class="side-label">Modernization studio</div>')
         st.radio("Workspace navigation", PAGES, key="page", label_visibility="collapsed")
         st.divider()
         markup('<div class="side-label">Live demo workflow</div>'
                '<div class="side-note">01 &nbsp; Ask with the current evidence<br>'
                '02 &nbsp; Add what was missing<br>03 &nbsp; Watch the answer change</div>')
-        st.button("Start the AMI workflow ↗", on_click=ask_ami, use_container_width=True)
-        st.button("Load a sample update +", on_click=draft_sample, use_container_width=True)
+        st.button("Start live demo ↗", on_click=ask_ami, use_container_width=True)
         st.divider()
         try:
             config = load_provider_config()
@@ -94,9 +119,7 @@ def sidebar(workspace):
         except ProviderError as error:
             model, provider, detail = "Configuration needs attention", "Provider", str(error)
         markup(f'<div class="side-model"><div class="side-label">{esc(provider)}</div>'
-               f'<strong>{esc(model)}</strong><small>{esc(detail)}</small></div>'
-               '<div class="side-note" style="margin-top:16px">Session workspace · Synthetic corpus<br>'
-               'Edits stay in this browser session. Restore the baseline whenever you need a fresh start.</div>')
+               f'<strong>{esc(model)}</strong><small>{esc(detail)}</small></div>')
 
 
 def overview(workspace):
@@ -165,36 +188,50 @@ def knowledge_base(workspace):
     heading("01 / Evidence management", "A knowledge base that moves with you.",
             "Publish new evidence, correct a source, or start fresh. Every update rebuilds the live index.")
     stats(workspace)
-    library, add, controls = st.tabs(["Document library", "Add evidence", "Reset & activity"],
+    library, add, codebase, controls = st.tabs(["Document library", "Add evidence", "Import codebase", "Reset & activity"],
                                      key="kb_tab", on_change="rerun")
     with library:
         if not workspace.documents:
             st.info("Your knowledge base is empty. Add evidence or restore the baseline in Reset & activity.")
         else:
-            search, version_filter = st.columns([3, 1])
+            search, version_filter, type_filter = st.columns([2, 1, 1])
             term = search.text_input("Find a document", placeholder="Search titles or source paths…")
             version = version_filter.selectbox("Version filter", ["All versions", "Legacy", "Modernized"])
+            kind_filter = type_filter.selectbox("Type filter", ["all", *TYPE_LABELS],
+                                                format_func=lambda kind: "All types" if kind == "all" else type_label(kind))
             filtered = [d for d in workspace.documents if term.lower() in (d.section_title + d.source_file).lower()
+                        and (kind_filter == "all" or d.source_type == kind_filter)
                         and (version == "All versions" or d.system_version == ("legacy" if version == "Legacy" else "mod_v1"))]
             if not filtered:
                 st.info("No documents match these filters.")
             else:
+                counts = Counter(c.chunk_id.split("::part-")[0] for c in workspace.chunks)
+                st.caption(f"Showing {len(filtered)} of {len(workspace.documents)} documents currently in the KB. Select a source below the table to inspect or edit it.")
+                document_table([
+                    {"Document": d.section_title, "Version": "Legacy" if d.system_version == "legacy" else "Modernized",
+                     "Type": type_label(d.source_type), "Chunks": counts[d.chunk_id], "Characters": len(d.text),
+                     "Source path": d.source_file} for d in filtered
+                ], height=min(360, 36 * (len(filtered) + 1)))
                 editor, preview = st.columns([1.45, 1], gap="large")
                 with editor:
-                    names = {d.chunk_id: f"{d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
+                    names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
                     selected = st.selectbox("Source document", list(names), format_func=lambda key: names[key])
                     document = next(d for d in filtered if d.chunk_id == selected)
                     epoch = f"{workspace.revision}-{selected}"
-                    markup(f'<div class="doc-summary"><div><b>{esc(document.source_type.title())} source</b>'
+                    markup(f'<div class="doc-summary"><div>{type_badge(document.source_type)}'
                            f'<small>{esc(document.source_file)}</small></div><span class="badge">Indexed</span></div>')
                     title = st.text_input("Document title", document.section_title, key=f"edit-title-{epoch}")
                     content = st.text_area("Source content", document.text, height=320, key=f"edit-text-{epoch}")
-                    system = st.selectbox("System version", ["legacy", "mod_v1"],
+                    version_editor, type_editor = st.columns(2)
+                    system = version_editor.selectbox("System version", ["legacy", "mod_v1"],
                                           index=0 if document.system_version == "legacy" else 1,
                                           format_func=lambda v: "Legacy" if v == "legacy" else "Modernized", key=f"edit-version-{epoch}")
+                    kinds = list(dict.fromkeys([*TYPE_LABELS, document.source_type]))
+                    kind = type_editor.selectbox("Document type", kinds, index=kinds.index(document.source_type),
+                                                  format_func=type_label, key=f"edit-type-{epoch}")
                     save, remove = st.columns([2, 1])
                     if save.button("Save & reindex", type="primary", use_container_width=True):
-                        mutate(workspace, lambda: workspace.upsert(title, content, system, document.source_type, selected),
+                        mutate(workspace, lambda: workspace.upsert(title, content, system, kind, selected),
                                "Document updated. The new content is now searchable.")
                     if remove.button("Remove source", use_container_width=True):
                         mutate(workspace, lambda: workspace.remove(selected), "Source and its chunks removed from the index.")
@@ -227,7 +264,7 @@ def knowledge_base(workspace):
             text = st.text_area("New source content", key="draft_text", height=300, placeholder="Paste the evidence you want the assistant to use…")
             version, kind = st.columns(2)
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
-            source_type = kind.selectbox("Source type", ["doc", "email", "code", "ticket", "runbook"])
+            source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
             if st.button("Publish to knowledge base →", type="primary", disabled=not title.strip() or not text.strip()):
                 mutate(workspace, lambda: workspace.upsert(title, text, system, source_type),
                        "New evidence published. Ask your question again to use it.")
@@ -242,6 +279,8 @@ def knowledge_base(workspace):
             else:
                 markup('<div class="empty-state"><b>Every source starts here.</b><p>Add content to see exact '
                        'chunk boundaries before it becomes searchable knowledge.</p></div>')
+    with codebase:
+        import_codebase_view(workspace)
     with controls:
         reset, log = st.columns([1, 1.3], gap="large")
         with reset:
@@ -259,6 +298,58 @@ def knowledge_base(workspace):
             activity(workspace, 15)
 
 
+def import_codebase_view(workspace):
+    st.subheader("Bring in an entire codebase")
+    st.write("Upload a ZIP of your repository to preserve its folder structure, or select several source files together.")
+    st.caption("20 MB combined upload · Up to 500 text files / 10 MB expanded per batch · 500 KB per source. "
+               "Dependencies, build output, binary files, and common credential filenames are skipped. Review the preview before publishing.")
+    uploads = st.file_uploader("Codebase ZIP or source files", accept_multiple_files=True, max_upload_size=20,
+                               key="codebase_uploads")
+    left, right = st.columns([2, 1])
+    project = left.text_input("Codebase name", placeholder="e.g. billing-service", key="import_project")
+    version = right.selectbox("Codebase version", ["legacy", "mod_v1"],
+                              format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
+    payloads = [(upload.name, upload.getvalue()) for upload in uploads]
+    signature = tuple((name, sha256(data).hexdigest()) for name, data in payloads)
+    if st.button("Preview codebase import", disabled=not uploads, type="primary"):
+        st.session_state.pop("import_plan", None)
+        try:
+            with st.spinner("Reading source files…"):
+                st.session_state.import_plan = prepare_codebase(payloads)
+                st.session_state.import_signature = signature
+        except ValueError as error:
+            st.error(str(error))
+    plan = st.session_state.get("import_plan")
+    if plan is None:
+        return
+    if signature != st.session_state.get("import_signature"):
+        st.info("The upload changed. Preview it again before importing.")
+        return
+    st.caption(f"{len(plan.files)} source files ready · {len(plan.skipped)} files skipped")
+    if plan.skipped:
+        with st.expander(f"Skipped files ({len(plan.skipped)})"):
+            st.dataframe(plan.skipped, hide_index=True, use_container_width=True)
+    if not plan.files:
+        st.info("No supported source files found. Upload UTF-8 source code or documentation.")
+        return
+    excluded = st.multiselect("Exclude additional files", [source.path for source in plan.files],
+                              key=f"import-excludes-{sha256(repr(signature).encode()).hexdigest()[:16]}")
+    selected = [source for source in plan.files if source.path not in excluded]
+    if selected:
+        document_table([{"Path": source.path, "Type": type_label(source.source_type), "Characters": len(source.text)}
+                        for source in selected], height=300)
+    else:
+        st.info("All files are excluded. Select at least one source to import.")
+    inspect = st.selectbox("Preview source text", [source.path for source in plan.files])
+    with st.expander("Selected file contents"):
+        st.code(next(source.text for source in plan.files if source.path == inspect), language="text", wrap_lines=True)
+    st.caption("One publish updates the whole batch. Reimporting the same codebase name, version, and path updates that source; "
+               "other sources already in the KB are kept. Files are indexed as text and are never executed.")
+    if st.button(f"Import {len(selected)} files & index", type="primary", disabled=not selected or not project.strip()):
+        mutate(workspace, lambda: workspace.import_codebase(selected, project, version),
+               f"Imported {len(selected)} files from {project.strip()}. Open Document library or Chunk explorer to inspect them.")
+
+
 def chunk_explorer(workspace):
     heading("02 / Inside the index", "One document. Every little detail.",
             "See exactly where a source becomes searchable passages. Preview a different chunk size, then rebuild the index live.")
@@ -267,8 +358,10 @@ def chunk_explorer(workspace):
         st.button("Add evidence →", on_click=go, args=("Knowledge base",))
         return
     source, size = st.columns([1.8, 1], gap="large")
-    names = {d.chunk_id: d.section_title for d in workspace.documents}
-    default = next((i for i, d in enumerate(workspace.documents) if len(d.text) > workspace.chunk_size * 1.5), 0)
+    counts = Counter(c.chunk_id.split("::part-")[0] for c in workspace.chunks)
+    names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {len(d.text):,} chars · {counts[d.chunk_id]} indexed chunks"
+             for d in workspace.documents}
+    default = max(range(len(workspace.documents)), key=lambda i: len(workspace.documents[i].text))
     selected = source.selectbox("Explore a document", list(names), index=default, format_func=lambda key: names[key])
     document = next(d for d in workspace.documents if d.chunk_id == selected)
     chunk_size = size.slider("Maximum characters per chunk", 200, 3000, workspace.chunk_size, 100,
@@ -281,6 +374,10 @@ def chunk_explorer(workspace):
     c.metric("Boundary strategy", "Paragraph → line", help="No overlap. Split at paragraph or line boundaries when possible, then the character limit.")
     if changed:
         st.info(f"Previewing {chunk_size:,} characters. The live index still uses {workspace.chunk_size:,} until you rebuild.")
+    if len(parts) == 1:
+        st.info(f"One chunk is expected: this document has {len(document.text):,} characters and the selected limit is "
+                f"{chunk_size:,}. This view shows one document, not the entire KB. "
+                "Choose a longer document or reduce the slider to preview more chunks.")
     if st.button("Apply chunk size & rebuild index", type="primary", disabled=not changed):
         mutate(workspace, lambda: workspace.rebuild(chunk_size), "Index rebuilt with the new chunk boundaries.")
     strip(parts)
@@ -288,6 +385,7 @@ def chunk_explorer(workspace):
     left, right = st.columns([1.35, 1], gap="large")
     with left:
         st.subheader("The source")
+        markup(type_badge(document.source_type))
         markup(f'<div class="mono" style="margin-bottom:10px">{esc(document.source_file)}</div>')
         markup('<div class="source-canvas">' + ''.join(
             f'<mark title="Chunk {i + 1}" style="background:{COLORS[i % len(COLORS)]}">{esc(part.text)}</mark>'
@@ -333,7 +431,8 @@ def show_sources(entry):
     sources = result.get("evidence", []) or result.get("retrieved_evidence", [])
     st.markdown("##### Cited evidence" if result.get("evidence") else "##### Retrieved sources")
     for index, source in enumerate(sources):
-        with st.expander(f"{index + 1:02} · {source.get('section_title', 'Source')} · {'Modernized' if source.get('system_version') == 'mod_v1' else 'Legacy'}"):
+        with st.expander(f"{index + 1:02} · {type_label(source.get('source_type', 'doc'))} · {source.get('section_title', 'Source')} · {'Modernized' if source.get('system_version') == 'mod_v1' else 'Legacy'}"):
+            markup(type_badge(source.get("source_type", "doc")))
             st.caption(source.get("source", "Indexed record"))
             passage = source.get("details") or source.get("text", "")
             st.code(passage, language="text", wrap_lines=True)
@@ -434,7 +533,9 @@ def live_qa(workspace):
 
 
 def run():
-    st.set_page_config(page_title="Continuity · Live modernization studio", page_icon="◈", layout="wide", initial_sidebar_state="expanded")
+    st.set_page_config(page_title="Continuity · Live modernization studio",
+                       page_icon=str(Path(__file__).with_name("continuity.svg")),
+                       layout="wide", initial_sidebar_state="expanded")
     markup('<style>' + Path(__file__).with_name("ui.css").read_text(encoding="utf-8") + '</style>')
     if "workspace" not in st.session_state:
         with st.spinner("Preparing your live knowledge workspace…"):

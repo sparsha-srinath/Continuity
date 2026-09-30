@@ -22,8 +22,10 @@ h1{font-weight:800!important}h3{font-size:1.2rem!important}
 [data-testid="stSidebar"] label[data-testid="stRadioOption"]>div>div:first-child{display:none}
 [data-testid="stSidebar"] [data-testid="stRadio"] p{font-size:.87rem;font-weight:500}
 [data-testid="stSidebar"] .stButton button{background:#203c34;border:1px solid #3c594d;color:#edf6ef;font-size:.8rem}
-.wordmark{font:800 1.6rem Manrope,sans-serif;letter-spacing:-.07em;margin:.2rem 0 2.1rem;display:flex;align-items:center;gap:10px;color:#f1f7ee}
-.wordmark b{display:grid;place-items:center;background:#c1eeb0;color:#13352b;width:35px;height:35px;border-radius:10px;font-size:1.7rem;font-weight:500}
+.wordmark{font:800 1.5rem Manrope,sans-serif;letter-spacing:-.07em;margin:.2rem 0 2.1rem;display:flex;align-items:center;gap:8px;color:#f1f7ee}
+.continuity-mark{width:44px;height:44px;flex:0 0 44px;filter:drop-shadow(0 3px 9px #75d9a926)}
+.wordmark .brand-period{color:#afd995!important;margin-left:-7px}
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid #29432f12;border-radius:6px;color:#29432f;font-size:.71rem;font-weight:700;white-space:nowrap}
 .side-label{color:#93b0a5!important;text-transform:uppercase;letter-spacing:.16em;font-size:.62rem;font-weight:700;margin:.9rem 0 .3rem}
 .side-note{font-size:.73rem;line-height:1.7;color:#a2bbb1!important;margin:.25rem 0}
 .side-model{padding:15px 13px;background:#1b3930;border:1px solid #335044;border-radius:12px;margin-top:.5rem}

@@ -10,7 +10,7 @@ The sidebar names the configured provider/model; it is not a health check.
 
 1. **Overview:** introduce the real pipeline: source documents, chunking,
    retrieval, and grounded generation. Counts reflect the current index.
-2. **Start the AMI workflow:** generate a live answer to the exact retry
+2. **Start live demo:** generate a live answer to the exact retry
    limits/timings question in Legacy scope. Open the cited evidence. The
    baseline has only a general backoff description and an old email about
    missing documentation. Click **Pin as before**.
@@ -33,6 +33,24 @@ The sidebar names the configured provider/model; it is not a health check.
 
 ## Additional live interactions
 
+- **Document library** shows a searchable inventory of all KB documents,
+  including version, source type, chunk count, character count, and source path.
+  Use the source selector below the table to inspect or edit a document.
+  Colored type tags distinguish Email, Code, Document, Ticket, Runbook, and
+  Spreadsheet sources. Filter by type or change **Document type** in the editor
+  and use **Save & reindex** to update the tag throughout the workspace.
+- **Import codebase** accepts a repository ZIP or multiple source files.
+  Set a codebase name and version, click **Preview codebase import**, review
+  included/skipped paths, optionally exclude files, then **Import files & index**.
+  ZIP uploads preserve folder structure. Reimporting the same name/version/path
+  updates that document; sources not present in a later upload are retained.
+  The importer reads text; it does not execute code or build the project.
+  Limits per batch: 20 MB uploaded, 10 MB expanded source, 500 supported files,
+  and 500 KB per file. Split larger repositories. Dependencies, build output,
+  binary files, and common credential filenames are skipped with reasons.
+  To package committed files from a Git repository, use
+  `git archive --format=zip --output=codebase.zip HEAD` in that repository.
+  This command excludes uncommitted changes.
 - Filter the document library by title/path and system version.
 - Edit a source and click **Save & reindex**, or remove it and its chunks.
 - Upload UTF-8 .txt, .md, .py, .sql, .csv, or .json content (500 KB maximum),

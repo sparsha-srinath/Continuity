@@ -53,6 +53,14 @@ Export documents before ending a session if you need a copy. New uploads
 support UTF-8 text, Markdown, Python, SQL, CSV, and JSON (500 KB per document).
 The baseline also ingests its existing Excel records.
 
+**Document library** lists all indexed source documents with version, type,
+chunk count, and path. **Import codebase** previews ZIP archives or multiple
+source files and indexes a reviewed batch together. ZIPs retain folder paths;
+repeat imports update matching paths in the same codebase/version. Limits:
+20 MB uploaded, 10 MB expanded text, 500 files per batch, 500 KB per file.
+Dependencies, build output, binary files, and common credential filenames are
+skipped with reasons visible in the preview.
+
 All answers use live retrieval and model generation; there are no prepared
 answers. Configure a provider below for Q&A. Evidence editing and chunk
 exploration work without a running model. See [the live presenter workflow](docs/presenter-demo.md).

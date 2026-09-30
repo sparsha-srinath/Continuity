@@ -22,7 +22,8 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     assert not app.exception
     workspace = app.session_state['workspace']
     baseline = len(workspace.documents)
-    button(app, 'Load a sample update +').click().run()
+    app.radio[0].set_value('Knowledge base').run()
+    button(app, 'Load AMI sample into editor').click().run()
     assert not app.exception
     assert app.session_state['kb_tab'] == 'Add evidence'
     assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
@@ -52,7 +53,7 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
         return json.dumps({'summary': 'Live test answer from selected evidence.', 'citations': [0], 'insufficient_evidence': False})
     monkeypatch.setattr(LiveWorkspace, 'assistant', lambda self: original(self, provider_config=ProviderConfig(), answer_generator=generator))
     app = AppTest.from_file(APP, default_timeout=30).run()
-    button(app, 'Start the AMI workflow ↗').click().run()
+    button(app, 'Start live demo ↗').click().run()
     assert field(app, 'text_area', 'Your question').value == AMI_QUESTION
     button(app, 'Generate live answer ↗').click().run()
     assert not app.exception

@@ -1,6 +1,7 @@
 """Session-isolated, editable evidence with real Chroma indexing and live answers."""
 
 from dataclasses import replace
+from hashlib import sha256
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -119,6 +120,33 @@ class LiveWorkspace:
             raise ValueError("This document is no longer in the knowledge base.")
         self._apply([d for d in self.documents if d.chunk_id != document_id], self.chunk_size,
                     "Removed " + document.section_title)
+
+    def import_codebase(self, files, project, version="legacy"):
+        from .codebase_import import MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES, path_issue
+
+        project = project.strip()
+        if not project or len(project) > 100:
+            raise ValueError("Enter a codebase name of 1–100 characters.")
+        if version not in {"legacy", "mod_v1"}:
+            raise ValueError("Choose a valid system version.")
+        if not files or len(files) > MAX_FILES:
+            raise ValueError("Select between 1 and 500 source files.")
+        if sum(len(f.text.encode("utf-8")) for f in files) > MAX_TOTAL_BYTES:
+            raise ValueError("Keep expanded source below 10 MB per batch.")
+        documents = {d.chunk_id: d for d in self.documents}
+        for source in files:
+            if path_issue(source.path) or not source.text.strip() or len(source.text.encode("utf-8")) > MAX_FILE_BYTES:
+                raise ValueError(f"Unsupported source: {source.path}")
+            identity = f"{len(project)}:{project}:{version}:{source.path}"
+            chunk_id = "REPO-" + sha256(identity.encode("utf-8")).hexdigest()[:24]
+            documents[chunk_id] = SourceChunk(
+                chunk_id=chunk_id, source_file=f"Codebase {project}/{source.path}", section_title=source.path,
+                text=source.text, system_version=version, source_type=source.source_type,
+                category="codebase-import", access="internal", entity=project,
+                author="Demo presenter", author_role_at_time="Contributor",
+                date=datetime.now(timezone.utc).date().isoformat(), employment_status="active", confidence_score=0.75,
+            )
+        self._apply(list(documents.values()), self.chunk_size, f"Imported {len(files)} files from {project}")
 
     def rebuild(self, chunk_size):
         self._apply(self.documents, chunk_size, f"Rebuilt index · {chunk_size:,} characters per chunk")

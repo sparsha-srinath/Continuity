@@ -84,7 +84,12 @@ class ChromaKnowledgeStore:
             ids.append(chunk.chunk_id)
             embeddings.append(self.embedding_fn.embed_query(chunk.text))
 
-        self.collection.upsert(documents=documents, metadatas=metadatas, ids=ids, embeddings=embeddings)
+        # Repository imports can exceed Chroma's per-request batch limit.
+        batch_size = min(1000, self.client.get_max_batch_size())
+        for start in range(0, len(ids), batch_size):
+            end = start + batch_size
+            self.collection.upsert(documents=documents[start:end], metadatas=metadatas[start:end],
+                                   ids=ids[start:end], embeddings=embeddings[start:end])
 
     def query(self, query: str, top_k: int = 5, system_version: str | None = None):
         if top_k <= 0 or self.collection.count() == 0:

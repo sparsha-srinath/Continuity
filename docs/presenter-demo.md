@@ -6,17 +6,21 @@ is required. Other platforms can use `python -m streamlit run app.py` after
 installing requirements. Start your configured model before presenting.
 The sidebar names the configured provider/model; it is not a health check.
 
+Keep [the copy-and-paste demo reference](demo-sample-data.md) open beside the
+app, or use **Download demo reference** in the sidebar. Questions and document
+drafts start empty; the reference contains all text needed for the steps below.
+
 ## Five-minute presentation
 
 1. **Overview:** introduce the real pipeline: source documents, chunking,
    retrieval, and grounded generation. Counts reflect the current index.
-2. **Load demo question:** click **Generate answer** for the exact retry
-   limits/timings question in Legacy scope. Open the cited evidence. The
+2. **Live Q&A:** paste the AMI retry question from the reference, select
+   **Legacy only**, and click **Generate answer**. Open the cited evidence. The
    baseline has only a general backoff description and an old email about
    missing documentation. Click **Pin baseline**.
 3. **Add new evidence:** click **Add document** or open **Knowledge base → Add document**,
-   then click **Load sample document** to load a synthetic AMI owner clarification. Read or
-   edit the values, watch the chunk preview, then click **Publish to knowledge
+   then paste the title and full AMI owner clarification from the reference.
+   Set the version to **Legacy** and type to **Document**. Review the chunk preview, then click **Publish to knowledge
    base**. The KB revision and document/chunk counts update immediately.
 4. **Chunk explorer:** select the new source. Adjust the character limit to
    preview boundaries. **Apply chunk size & rebuild index** makes the preview

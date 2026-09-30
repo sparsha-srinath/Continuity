@@ -15,7 +15,7 @@ from .llm_provider import ProviderError, load_provider_config
 from .codebase_import import prepare_codebase
 from .models import SourceChunk
 from .retrieval import split_chunks
-from .workspace import AMI_QUESTION, AMI_UPDATE, LiveWorkspace
+from .workspace import LiveWorkspace
 
 
 PAGES = ["Overview", "Knowledge base", "Chunk explorer", "Live Q&A"]
@@ -57,19 +57,6 @@ def go(page):
 def add_document():
     st.session_state.page = "Knowledge base"
     st.session_state.kb_tab = "Add document"
-
-
-def draft_sample():
-    st.session_state.draft_title = "AMI retry configuration — owner clarification"
-    st.session_state.draft_text = AMI_UPDATE
-    st.session_state.page = "Knowledge base"
-    st.session_state.kb_tab = "Add document"
-
-
-def ask_ami():
-    st.session_state.question = AMI_QUESTION
-    st.session_state.scope = "legacy"
-    st.session_state.page = "Live Q&A"
 
 
 def pin_answer(entry):
@@ -168,8 +155,10 @@ def sidebar(workspace):
         st.divider()
         markup('<div class="side-label">Demo steps</div>'
                '<div class="side-note">01 &nbsp; Generate a baseline answer<br>'
-               '02 &nbsp; Publish the AMI clarification<br>03 &nbsp; Generate again and compare</div>')
-        st.button("Load demo question", on_click=ask_ami, use_container_width=True)
+               '02 &nbsp; Add or update a document<br>03 &nbsp; Generate again and compare</div>')
+        st.download_button("Download demo reference",
+                           (Path(__file__).resolve().parents[1] / "docs" / "demo-sample-data.md").read_text(encoding="utf-8"),
+                           file_name="demo-sample-data.md", mime="text/markdown", use_container_width=True)
         st.divider()
         try:
             config = load_provider_config()
@@ -210,10 +199,9 @@ def overview(workspace):
            '<span class="flow-arrow">→</span><div class="flow-node"><b>04 &nbsp; Generate an answer</b><small>Use selected passages as context</small></div></div>')
     left, right = st.columns([1.25, 1], gap="large")
     with left:
-        markup('<div class="section-heading"><h2>AMI retry settings demo</h2></div>')
-        st.write("Ask for the exact AMI retry settings. Pin the first answer, add the owner’s clarification, "
-                 "and ask the same question again to compare the answers and their sources.")
-        st.button("Load AMI demo question", type="primary", on_click=ask_ami)
+        markup('<div class="section-heading"><h2>Compare KB revisions</h2></div>')
+        st.write("Generate an answer and pin it as a baseline. Add or update a document, then ask the same "
+                 "question again to compare the answers and their sources. The demo reference contains sample questions and documents.")
     with right:
         markup('<div class="section-heading"><h2>Recent KB changes</h2><span>Latest four changes</span></div>')
         activity(workspace, 4)
@@ -330,7 +318,6 @@ def knowledge_base(workspace):
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
             source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
             published = publish_source(workspace, title, text, system, source_type)
-            st.button("Load sample document", on_click=draft_sample)
         with preview:
             st.subheader("Chunk preview")
             if text.strip():
@@ -577,11 +564,11 @@ def answer_body(entry):
 def live_qa(workspace):
     heading("03 / Questions and answers", "Live Q&A",
             "Generate answers from the indexed documents. Review source citations or pin an answer to compare it after a KB update.")
-    st.session_state.setdefault("question", st.session_state.get("last_question", AMI_QUESTION))
+    st.session_state.setdefault("question", st.session_state.get("last_question", ""))
     st.session_state.setdefault("scope", st.session_state.get("last_scope", "legacy"))
     st.session_state.setdefault("answers", [])
     with st.form("ask-form"):
-        question = st.text_area("Your question", key="question", height=85)
+        question = st.text_area("Your question", key="question", height=85, placeholder="Enter or paste a question…")
         scope_col, action = st.columns([1, 2], vertical_alignment="bottom")
         scope = scope_col.selectbox("Source scope", ["legacy", "mod_v1", "compare"], key="scope",
                                     format_func=lambda v: {"legacy": "Legacy only", "mod_v1": "Modernized only", "compare": "Compare both systems"}[v])
@@ -591,6 +578,8 @@ def live_qa(workspace):
     # stale, duplicated panel while the new one is being rendered.
     progress_slot = st.empty()
     results_slot = st.empty()
+    if submitted and not question.strip():
+        progress_slot.info("Enter a question before generating an answer.")
     if submitted and question.strip():
         st.session_state.last_question = question
         st.session_state.last_scope = scope

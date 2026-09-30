@@ -17,13 +17,20 @@ def field(app, kind, label):
     return next(w for w in getattr(app, kind) if w.label == label)
 
 
+def paste_sample_document(app):
+    app.session_state['kb_tab'] = 'Add document'
+    field(app, 'text_input', 'New document title').set_value('AMI retry configuration — owner clarification')
+    field(app, 'text_area', 'New source content').set_value(AMI_UPDATE).run()
+
+
 def test_workspace_pages_preview_publish_clear_and_restore():
     app = AppTest.from_file(APP, default_timeout=30).run()
     assert not app.exception
     workspace = app.session_state['workspace']
     baseline = len(workspace.documents)
     app.radio[0].set_value('Knowledge base').run()
-    button(app, 'Load sample document').click().run()
+    assert field(app, 'text_area', 'New source content').value == ''
+    paste_sample_document(app)
     assert not app.exception
     assert app.session_state['kb_tab'] == 'Add document'
     assert field(app, 'text_area', 'New source content').value == AMI_UPDATE
@@ -66,7 +73,7 @@ def test_workspace_pages_preview_publish_clear_and_restore():
 def test_publish_failure_preserves_draft_and_allows_retry(monkeypatch):
     app = AppTest.from_file(APP, default_timeout=30).run()
     app.radio[0].set_value('Knowledge base').run()
-    button(app, 'Load sample document').click().run()
+    paste_sample_document(app)
     workspace = app.session_state['workspace']
     original = LiveWorkspace.upsert
     def fail(*args, **kwargs):
@@ -92,8 +99,13 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
         return json.dumps({'summary': 'Live test answer from selected evidence.', 'citations': [0], 'insufficient_evidence': False})
     monkeypatch.setattr(LiveWorkspace, 'assistant', lambda self: original(self, provider_config=ProviderConfig(), answer_generator=generator))
     app = AppTest.from_file(APP, default_timeout=30).run()
-    button(app, 'Load demo question').click().run()
-    assert field(app, 'text_area', 'Your question').value == AMI_QUESTION
+    app.radio[0].set_value('Live Q&A').run()
+    assert field(app, 'text_area', 'Your question').value == ''
+    button(app, 'Generate answer').click().run()
+    assert not app.exception
+    assert app.session_state['answers'] == []
+    assert any('Enter a question' in message.value for message in app.info)
+    field(app, 'text_area', 'Your question').set_value(AMI_QUESTION).run()
     button(app, 'Generate answer').click().run()
     assert not app.exception
     button(app, 'Pin baseline').click().run()
@@ -106,9 +118,10 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
     button(app, 'Add document').click().run()
     assert app.session_state['kb_tab'] == 'Add document'
     assert field(app, 'text_area', 'New source content').value == ''
-    button(app, 'Load sample document').click().run()
+    paste_sample_document(app)
     button(app, 'Publish to knowledge base').click().run()
     app.radio[0].set_value('Live Q&A').run()
+    assert field(app, 'text_area', 'Your question').value == AMI_QUESTION
     assert any('current KB is revision 02' in message.value for message in app.info)
     button(app, 'Generate answer').click().run()
     assert not app.exception
@@ -133,6 +146,7 @@ def test_model_failure_keeps_sources_visible(monkeypatch):
     monkeypatch.setattr(LiveWorkspace, 'assistant', lambda self: original(self, provider_config=ProviderConfig()))
     app = AppTest.from_file(APP, default_timeout=30).run()
     app.radio[0].set_value('Live Q&A').run()
+    field(app, 'text_area', 'Your question').set_value(AMI_QUESTION).run()
     button(app, 'Generate answer').click().run()
     assert not app.exception
     assert app.error

@@ -61,6 +61,9 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
     before = app.session_state['before_answer']
     assert before['revision'] == 1
     assert before['documents']
+    assert any('Baseline pinned.' in message.value for message in app.info)
+    assert not any('**Before · revision' in item.value for item in app.markdown)
+    assert len([b for b in app.button if b.label == 'Pin as before']) == 1
     button(app, 'Add new evidence +').click().run()
     button(app, 'Publish to knowledge base →').click().run()
     app.radio[0].set_value('Live Q&A').run()
@@ -70,6 +73,15 @@ def test_live_question_pin_update_and_source_snapshots(monkeypatch):
     assert len(app.session_state['answers']) == 2
     assert app.session_state['answers'][-1]['revision'] == 2
     assert app.session_state['before_answer']['revision'] == 1
+    assert field(app, 'selectbox', 'Answer history').value == 1
+    assert sum('**Before · revision' in item.value for item in app.markdown) == 1
+    assert sum('**After · revision' in item.value for item in app.markdown) == 1
+    assert any('Full source at answer time' in item.value for item in app.markdown)
+    button(app, 'Unpin comparison').click().run()
+    assert not app.exception
+    assert not any('**Before · revision' in item.value for item in app.markdown)
+    assert len(app.session_state['answers']) == 2
+    assert field(app, 'selectbox', 'Answer history').value == 1
     assert any('Full source at answer time' in item.value for item in app.markdown)
     assert not app.error
 

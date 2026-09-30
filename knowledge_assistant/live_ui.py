@@ -67,6 +67,14 @@ def ask_ami():
     st.session_state.page = "Live Q&A"
 
 
+def pin_answer(entry):
+    st.session_state.before_answer = entry
+
+
+def unpin_answer():
+    st.session_state.pop("before_answer", None)
+
+
 def heading(kicker, title, subtitle):
     markup(f'<div class="page-heading"><div class="eyebrow">{esc(kicker)}</div>'
            f'<h1>{esc(title)}</h1><p>{esc(subtitle)}</p></div>')
@@ -371,10 +379,12 @@ def chunk_explorer(workspace):
     a.metric("Document length", f"{len(document.text):,}", help="Characters in the source document")
     b.metric("Preview chunks" if changed else "Indexed chunks", len(parts))
     c.metric("Boundary strategy", "Paragraph → line", help="No overlap. Split at paragraph or line boundaries when possible, then the character limit.")
+    preview_notice = st.empty()
+    single_chunk_notice = st.empty()
     if changed:
-        st.info(f"Previewing {chunk_size:,} characters. The live index still uses {workspace.chunk_size:,} until you rebuild.")
+        preview_notice.info(f"Previewing {chunk_size:,} characters. The live index still uses {workspace.chunk_size:,} until you rebuild.")
     if len(parts) == 1:
-        st.info(f"One chunk is expected: this document has {len(document.text):,} characters and the selected limit is "
+        single_chunk_notice.info(f"One chunk is expected: this document has {len(document.text):,} characters and the selected limit is "
                 f"{chunk_size:,}. This view shows one document, not the entire KB. "
                 "Choose a longer document or reduce the slider to preview more chunks.")
     if st.button("Apply chunk size & rebuild index", type="primary", disabled=not changed):
@@ -472,14 +482,21 @@ def live_qa(workspace):
         scope = scope_col.selectbox("Evidence scope", ["legacy", "mod_v1", "compare"], key="scope",
                                     format_func=lambda v: {"legacy": "Legacy only", "mod_v1": "Modernized only", "compare": "Compare both systems"}[v])
         submitted = action.form_submit_button("Generate live answer ↗", type="primary", use_container_width=True)
+    # Keep progress and results at fixed positions on every rerun. Clearing the
+    # results before a slow model call prevents the prior answer lingering as a
+    # stale, duplicated panel while the new one is being rendered.
+    progress_slot = st.empty()
+    results_slot = st.empty()
     if submitted and question.strip():
         st.session_state.last_question = question
         st.session_state.last_scope = scope
-        with st.status("Retrieving evidence and calling the model…", expanded=True) as status:
-            st.write(f"Using KB revision {workspace.revision:02} · {len(workspace.chunks)} indexed chunks")
-            result = workspace.assistant().answer_question(question, scope)
-            status.update(label="Answer ready" if result["status"] != "error" else "Answer generation needs attention",
-                          state="complete" if result["status"] != "error" else "error", expanded=False)
+        results_slot.empty()
+        with progress_slot.container():
+            with st.status("Retrieving evidence and calling the model…", expanded=True) as status:
+                st.write(f"Using KB revision {workspace.revision:02} · {len(workspace.chunks)} indexed chunks")
+                result = workspace.assistant().answer_question(question, scope)
+                status.update(label="Answer ready" if result["status"] != "error" else "Answer generation needs attention",
+                              state="complete" if result["status"] != "error" else "error", expanded=False)
         snapshots = {}
         for source in result.get("evidence", []) + result.get("retrieved_evidence", []):
             base_id = source["chunk_id"].split("::part-")[0]
@@ -489,6 +506,12 @@ def live_qa(workspace):
         entry = {"id": len(st.session_state.answers), "question": question, "scope": scope,
                  "revision": workspace.revision, "result": result, "documents": snapshots}
         st.session_state.answers.append(entry)
+        st.session_state.answer_history = entry["id"]
+    with results_slot.container(key="qa_results"):
+        render_answer_results(workspace)
+
+
+def render_answer_results(workspace):
     if not st.session_state.answers:
         markup('<div class="empty-state"><b>Let the evidence speak.</b><p>Start with the AMI question to reveal a knowledge gap. '
                'Then publish the owner clarification and watch a real model use the new source.</p></div>')
@@ -496,37 +519,38 @@ def live_qa(workspace):
         return
     answers = st.session_state.answers
     index = st.selectbox("Answer history", range(len(answers) - 1, -1, -1),
+                         key="answer_history",
                          format_func=lambda i: f"#{i + 1} · Rev {answers[i]['revision']:02} · {answers[i]['question'][:90]}")
     entry = answers[index]
+    revision_notice = st.empty()
     if entry["revision"] != workspace.revision:
-        st.info(f"This answer used revision {entry['revision']:02}. The current KB is revision {workspace.revision:02}. Generate again to use current evidence.")
+        revision_notice.info(f"This answer used revision {entry['revision']:02}. The current KB is revision {workspace.revision:02}. Generate again to use current evidence.")
     main, detail = st.columns([1.8, 1], gap="large")
     with main:
         st.subheader("The answer")
         answer_body(entry)
         pin, update = st.columns(2)
-        if pin.button("Pin as before", use_container_width=True):
-            st.session_state.before_answer = entry
-            st.rerun()
+        pin.button("Pin as before", on_click=pin_answer, args=(entry,), use_container_width=True)
         update.button("Add new evidence +", on_click=draft_sample, use_container_width=True)
         before = st.session_state.get("before_answer")
-        if before:
-            with st.expander("Before & after", expanded=True):
-                if before["id"] == entry["id"]:
-                    st.info("Baseline pinned. Update the KB, then generate the same question again to compare.")
-                elif before["question"] != entry["question"] or before["scope"] != entry["scope"]:
-                    st.warning("These answers use different questions or scopes. Use the same inputs for a meaningful comparison.")
-                first, second = st.columns(2)
-                with first:
-                    st.markdown(f"**Before · revision {before['revision']:02}**")
-                    answer_body(before)
-                with second:
-                    st.markdown(f"**After · revision {entry['revision']:02}**")
-                    answer_body(entry)
-                if st.button("Unpin comparison"):
-                    del st.session_state.before_answer
-                    st.rerun()
-        show_sources(entry)
+        with st.container(key="qa_comparison"):
+            if before:
+                with st.expander("Before & after", expanded=True):
+                    if before["id"] == entry["id"]:
+                        st.info("Baseline pinned. Update the KB, then generate the same question again to compare.")
+                    else:
+                        if before["question"] != entry["question"] or before["scope"] != entry["scope"]:
+                            st.warning("These answers use different questions or scopes. Use the same inputs for a meaningful comparison.")
+                        first, second = st.columns(2)
+                        with first:
+                            st.markdown(f"**Before · revision {before['revision']:02}**")
+                            answer_body(before)
+                        with second:
+                            st.markdown(f"**After · revision {entry['revision']:02}**")
+                            answer_body(entry)
+                    st.button("Unpin comparison", on_click=unpin_answer)
+        with st.container(key="qa_sources"):
+            show_sources(entry)
     with detail:
         trace(entry["result"])
 
@@ -536,9 +560,12 @@ def run():
                        page_icon=str(Path(__file__).with_name("continuity.svg")),
                        layout="wide", initial_sidebar_state="expanded")
     markup('<style>' + Path(__file__).with_name("ui.css").read_text(encoding="utf-8") + '</style>')
+    startup_slot = st.empty()
     if "workspace" not in st.session_state:
-        with st.spinner("Preparing your live knowledge workspace…"):
-            st.session_state.workspace = LiveWorkspace()
+        with startup_slot.container():
+            with st.spinner("Preparing your live knowledge workspace…"):
+                st.session_state.workspace = LiveWorkspace()
+        startup_slot.empty()
     workspace = st.session_state.workspace
     sidebar(workspace)
     page = st.session_state.page
@@ -548,6 +575,11 @@ def run():
                      on_change=lambda: go(st.session_state.mobile_page))
     markup(f'<div class="topline"><span>Workspace &nbsp;/&nbsp; <strong>{esc(page)}</strong></span>'
            f'<span class="badge"><i class="dot"></i> LIVE WORKSPACE &nbsp;·&nbsp; REV {workspace.revision:02}</span></div>')
+    # An optional notice must not move the page's delta path: otherwise the
+    # frontend keeps the old page beside the new one until the rerun finishes.
+    notice_slot = st.empty()
     if st.session_state.get("flash"):
-        st.success(st.session_state.pop("flash"))
-    {"Overview": overview, "Knowledge base": knowledge_base, "Chunk explorer": chunk_explorer, "Live Q&A": live_qa}[page](workspace)
+        notice_slot.success(st.session_state.pop("flash"))
+    page_slot = st.empty()
+    with page_slot.container(key=f"page_{PAGES.index(page)}"):
+        {"Overview": overview, "Knowledge base": knowledge_base, "Chunk explorer": chunk_explorer, "Live Q&A": live_qa}[page](workspace)

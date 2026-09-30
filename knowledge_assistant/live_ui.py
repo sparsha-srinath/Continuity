@@ -212,10 +212,10 @@ def knowledge_base(workspace):
                      "Type": type_label(d.source_type), "Chunks": counts[d.chunk_id], "Characters": len(d.text),
                      "Source path": d.source_file} for d in filtered
                 ], height=min(360, 36 * (len(filtered) + 1)))
-                editor, preview = st.columns([1.45, 1], gap="large")
-                with editor:
-                    names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
-                    selected = st.selectbox("Source document", list(names), format_func=lambda key: names[key])
+                names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
+                selected = st.selectbox("Source document", list(names), format_func=lambda key: names[key],
+                                        index=None, placeholder="Choose a document to inspect or edit…")
+                if selected is not None:
                     document = next(d for d in filtered if d.chunk_id == selected)
                     epoch = f"{workspace.revision}-{selected}"
                     markup(f'<div class="doc-summary"><div>{type_badge(document.source_type)}'
@@ -235,15 +235,14 @@ def knowledge_base(workspace):
                                "Document updated. The new content is now searchable.")
                     if remove.button("Remove source", use_container_width=True):
                         mutate(workspace, lambda: workspace.remove(selected), "Source and its chunks removed from the index.")
-                with preview:
-                    st.subheader("Live chunk preview")
-                    st.caption("Your edits appear here before you publish them.")
-                    parts = split_chunks([replace(document, text=content)], max_chars=workspace.chunk_size)
-                    strip(parts)
-                    st.caption(f"{len(parts)} chunks · {len(content):,} characters · {workspace.chunk_size:,} character limit")
-                    chunk_cards(parts, 6)
-                    if len(parts) > 6:
-                        st.caption(f"Showing 6 of {len(parts)} chunks. Explore all chunks after saving.")
+                    with st.expander("Preview chunks", expanded=False):
+                        st.caption("How this document’s current text will be split when saved. Use Chunk explorer for detailed inspection.")
+                        parts = split_chunks([replace(document, text=content)], max_chars=workspace.chunk_size)
+                        strip(parts)
+                        st.caption(f"{len(parts)} chunks · {len(content):,} characters · {workspace.chunk_size:,} character limit")
+                        chunk_cards(parts, 6)
+                        if len(parts) > 6:
+                            st.caption(f"Showing 6 of {len(parts)} chunks. Explore all chunks after saving.")
     with add:
         edit, preview = st.columns([1.4, 1], gap="large")
         with edit:

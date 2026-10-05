@@ -2,6 +2,7 @@
 
 import html
 import json
+from datetime import date
 from base64 import b64encode
 from collections import Counter
 from hashlib import sha256
@@ -107,7 +108,7 @@ def mutate(workspace, operation, message, feedback_key, feedback_slot):
         feedback_slot.error(str(error))
 
 
-def publish_source(workspace, title, text, system, source_type):
+def publish_source(workspace, title, text, system, source_type, effective_from):
     receipt = st.session_state.get("publish_receipt", {})
     published = any(
         d.chunk_id == receipt.get("document_id")
@@ -130,7 +131,8 @@ def publish_source(workspace, title, text, system, source_type):
             with feedback_slot.container():
                 with st.status("Publishing your source…", expanded=True):
                     st.write("Adding the document and updating the search index. Please wait.")
-                    document_id = workspace.upsert(title, text, system, source_type)
+                    document_id = workspace.upsert(title, text, system, source_type,
+                                                   effective_from=effective_from.isoformat())
             st.session_state.publish_receipt = {"document_id": document_id, "revision": workspace.revision}
         except (ValueError, RuntimeError) as error:
             st.session_state.publish_error = f"Could not publish: {error} Your draft is still here. Try again."
@@ -250,7 +252,9 @@ def knowledge_base(workspace):
                 st.caption(f"Showing {len(filtered)} of {len(workspace.documents)} documents currently in the KB. Select a source below the table to inspect or edit it.")
                 document_table([
                     {"Document": d.section_title, "Version": "Legacy" if d.system_version == "legacy" else "Modernized",
-                     "Type": type_label(d.source_type), "Chunks": counts[d.chunk_id], "Characters": len(d.text),
+                     "Type": type_label(d.source_type), "Status": "Current" if d.effective_to is None else "Replaced",
+                     "Effective from": d.effective_from or d.date, "Effective until": d.effective_to or "Current",
+                     "Chunks": counts[d.chunk_id], "Characters": len(d.text),
                      "Source path": d.source_file} for d in filtered
                 ], height=min(360, 36 * (len(filtered) + 1)))
                 names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {'Legacy' if d.system_version == 'legacy' else 'Modernized'}" for d in filtered}
@@ -259,18 +263,31 @@ def knowledge_base(workspace):
                 save_clicked = remove_clicked = False
                 if selected is not None:
                     document = next(d for d in filtered if d.chunk_id == selected)
+                    historical = document.effective_to is not None
                     epoch = f"{workspace.revision}-{selected}"
                     markup(f'<div class="doc-summary"><div>{type_badge(document.source_type)}'
-                           f'<small>{esc(document.source_file)}</small></div><span class="badge">Indexed</span></div>')
-                    title = st.text_input("Document title", document.section_title, key=f"edit-title-{epoch}")
-                    content = st.text_area("Source content", document.text, height=320, key=f"edit-text-{epoch}")
+                           f'<small>{esc(document.source_file)}</small></div><span class="badge">{"Historical" if historical else "Current"}</span></div>')
+                    if historical:
+                        st.info("This is a retained historical revision. It is not used for new answers.")
+                    with st.expander("Source history", expanded=historical):
+                        st.dataframe([
+                            {"Revision": f"v{item.revision_number}", "Status": "Current" if item.effective_to is None else "Replaced",
+                             "Effective from": item.effective_from or item.date, "Effective until": item.effective_to or "Current",
+                             "Changed by": item.changed_by or item.author, "Changed at": item.changed_at or item.date,
+                             "Replaces": item.supersedes or "—"}
+                            for item in workspace.source_history(selected)
+                        ], hide_index=True, use_container_width=True)
+                    title = st.text_input("Document title", document.section_title, key=f"edit-title-{epoch}", disabled=historical)
+                    content = st.text_area("Source content", document.text, height=320, key=f"edit-text-{epoch}", disabled=historical)
                     version_editor, type_editor = st.columns(2)
                     system = version_editor.selectbox("System version", ["legacy", "mod_v1"],
                                           index=0 if document.system_version == "legacy" else 1,
-                                          format_func=lambda v: "Legacy" if v == "legacy" else "Modernized", key=f"edit-version-{epoch}")
+                                          format_func=lambda v: "Legacy" if v == "legacy" else "Modernized", key=f"edit-version-{epoch}", disabled=historical)
                     kinds = list(dict.fromkeys([*TYPE_LABELS, document.source_type]))
                     kind = type_editor.selectbox("Document type", kinds, index=kinds.index(document.source_type),
-                                                  format_func=type_label, key=f"edit-type-{epoch}")
+                                                  format_func=type_label, key=f"edit-type-{epoch}", disabled=historical)
+                    effective_from = st.date_input("Effective from", value=date.fromisoformat(document.effective_from or document.date),
+                                                   key=f"edit-effective-{epoch}", disabled=historical)
                     with st.expander("Preview chunks", expanded=False):
                         st.caption("How this document’s current text will be split when saved. Use Chunk explorer for detailed inspection.")
                         parts = split_chunks([replace(document, text=content)], max_chars=workspace.chunk_size)
@@ -280,12 +297,13 @@ def knowledge_base(workspace):
                         if len(parts) > 6:
                             st.caption(f"Showing 6 of {len(parts)} chunks. Explore all chunks after saving.")
                     save, remove = st.columns([2, 1])
-                    save_clicked = save.button("Save & reindex", type="primary", use_container_width=True)
-                    remove_clicked = remove.button("Remove source", use_container_width=True)
+                    save_clicked = save.button("Save new revision & reindex", type="primary", use_container_width=True, disabled=historical)
+                    remove_clicked = remove.button("Remove source", use_container_width=True, disabled=historical)
                 feedback = action_feedback(workspace, "document_editor")
                 if save_clicked:
-                    mutate(workspace, lambda: workspace.upsert(title, content, system, kind, selected),
-                           "Document updated. The new content is now searchable.", "document_editor", feedback)
+                    mutate(workspace, lambda: workspace.upsert(title, content, system, kind, selected,
+                                                                effective_from=effective_from.isoformat()),
+                           "New revision published. The earlier guidance remains in Source history.", "document_editor", feedback)
                 if remove_clicked:
                     mutate(workspace, lambda: workspace.remove(selected), "Source and its chunks removed from the index.",
                            "document_editor", feedback)
@@ -310,7 +328,8 @@ def knowledge_base(workspace):
             version, kind = st.columns(2)
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
             source_type = kind.selectbox("Source type", list(TYPE_LABELS), format_func=type_label)
-            published = publish_source(workspace, title, text, system, source_type)
+            effective_from = st.date_input("Effective from", value=date.today(), key="draft-effective")
+            published = publish_source(workspace, title, text, system, source_type, effective_from)
         with preview:
             st.subheader("Chunk preview")
             if text.strip():

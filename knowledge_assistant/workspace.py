@@ -2,7 +2,7 @@
 
 from dataclasses import replace
 from hashlib import sha256
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
 import chromadb
@@ -89,35 +89,59 @@ class LiveWorkspace:
         if previous is not None:
             self._client.delete_collection(previous.collection.name)
 
-    def upsert(self, title, text, version="legacy", source_type="doc", document_id=None):
+    def upsert(self, title, text, version="legacy", source_type="doc", document_id=None, *, effective_from=None):
         if not title.strip() or not text.strip():
             raise ValueError("A document needs both a title and non-empty content.")
         if len(text.encode("utf-8")) > 500_000:
             raise ValueError("Keep each demo document below 500 KB.")
         if version not in {"legacy", "mod_v1"}:
             raise ValueError("Choose a valid system version.")
+        effective_date = effective_from or datetime.now(timezone.utc).date().isoformat()
+        try:
+            effective_date = date.fromisoformat(str(effective_date)).isoformat()
+        except ValueError as error:
+            raise ValueError("Effective date must use YYYY-MM-DD.") from error
         existing = next((d for d in self.documents if d.chunk_id == document_id), None)
         if document_id is not None and existing is None:
             raise ValueError("This document is no longer in the knowledge base.")
-        document = replace(existing, section_title=title.strip(), text=text,
-                           system_version=version, source_type=source_type) if existing else SourceChunk(
-            chunk_id="LIVE-" + uuid4().hex[:12], source_file="Session upload: " + title.strip(),
+        if existing is not None and existing.effective_to is not None:
+            raise ValueError("Historical sources cannot be edited. Update the current revision instead.")
+        changed_at = datetime.now(timezone.utc).isoformat()
+        document = SourceChunk(
+            chunk_id="LIVE-" + uuid4().hex[:12], source_file=existing.source_file if existing else "Session upload: " + title.strip(),
             section_title=title.strip(), text=text, system_version=version,
-            source_type=source_type, category="live-upload", access="internal",
-            entity=title.strip(), author="Demo presenter", author_role_at_time="Contributor",
-            date=datetime.now(timezone.utc).date().isoformat(), employment_status="active",
-            confidence_score=0.75,
+            source_type=source_type, category=existing.category if existing else "live-upload",
+            access=existing.access if existing else "internal", entity=existing.entity if existing else title.strip(),
+            author="Demo presenter", author_role_at_time="Contributor",
+            date=effective_date, employment_status="active", confidence_score=existing.confidence_score if existing else 0.75,
+            supersedes=existing.chunk_id if existing else None,
+            effective_from=effective_date,
+            revision_of=(existing.revision_of or existing.chunk_id) if existing else None,
+            revision_number=(existing.revision_number + 1) if existing else 1,
+            changed_by="Demo presenter", changed_at=changed_at,
         )
-        documents = [document if d.chunk_id == document_id else d for d in self.documents]
         if existing is None:
-            documents.append(document)
+            documents = list(self.documents) + [document]
+        else:
+            prior = replace(existing, effective_to=effective_date, employment_status="superseded")
+            documents = [prior if d.chunk_id == existing.chunk_id else d for d in self.documents] + [document]
         self._apply(documents, self.chunk_size, ("Updated " if existing else "Added ") + title.strip())
         return document.chunk_id
+
+    def source_history(self, document_id):
+        document = next((d for d in self.documents if d.chunk_id == document_id), None)
+        if document is None:
+            raise ValueError("This document is no longer in the knowledge base.")
+        root = document.revision_of or document.chunk_id
+        lineage = [d for d in self.documents if (d.revision_of or d.chunk_id) == root]
+        return sorted(lineage, key=lambda d: (d.revision_number, d.changed_at, d.chunk_id))
 
     def remove(self, document_id):
         document = next((d for d in self.documents if d.chunk_id == document_id), None)
         if document is None:
             raise ValueError("This document is no longer in the knowledge base.")
+        if document.effective_to is not None:
+            raise ValueError("Historical sources are retained as an audit record and cannot be removed.")
         self._apply([d for d in self.documents if d.chunk_id != document_id], self.chunk_size,
                     "Removed " + document.section_title)
 

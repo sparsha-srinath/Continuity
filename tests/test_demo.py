@@ -13,11 +13,14 @@ def test_add_edit_remove_clear_restore_are_reflected_in_real_index():
     doc_id = workspace.upsert('Zebra migration policy', 'Zebra migration launch requires four approvals. ' * 90)
     assert len(workspace.document_chunks(doc_id)) > 1
     assert any(c['chunk_id'].startswith(doc_id) for c in workspace.assistant(provider_config=ProviderConfig())._retrieve_candidates('zebra migration approvals', 'legacy'))
-    workspace.upsert('Zebra migration policy', 'Zebra migration now needs one approval.', document_id=doc_id)
+    revised_id = workspace.upsert('Zebra migration policy', 'Zebra migration now needs one approval.', document_id=doc_id,
+                                  effective_from='2026-10-05')
     stored_ids = set(workspace.store.collection.get()['ids'])
-    assert doc_id in stored_ids
-    assert not any(key.startswith(doc_id + '::') for key in stored_ids)
-    workspace.remove(doc_id)
+    assert doc_id in stored_ids and revised_id in stored_ids
+    assert workspace.source_history(revised_id)[0].effective_to == '2026-10-05'
+    workspace.remove(revised_id)
+    assert doc_id in set(workspace.store.collection.get()['ids'])
+    workspace.reset()
     assert set(workspace.store.collection.get()['ids']) == original_ids
     workspace.reset(empty=True)
     generator = Mock()
@@ -82,3 +85,16 @@ def test_invalid_sources_do_not_change_revision(title, text):
     with pytest.raises(ValueError):
         workspace.upsert(title, text)
     assert workspace.revision == 1
+
+
+def test_source_revisions_keep_history_and_retrieval_uses_current_guidance():
+    workspace = LiveWorkspace(documents=[])
+    first = workspace.upsert('AMI operations', 'Retry a failed upload twice.', effective_from='2026-01-01')
+    current = workspace.upsert('AMI operations', 'Retry a failed upload four times.', document_id=first,
+                               effective_from='2026-02-01')
+    history = workspace.source_history(current)
+    assert [item.revision_number for item in history] == [1, 2]
+    assert history[0].effective_to == '2026-02-01'
+    assert history[1].supersedes == first
+    candidates = workspace.assistant()._retrieve_candidates('retry failed upload', 'legacy')
+    assert {item['chunk_id'] for item in candidates} == {current}

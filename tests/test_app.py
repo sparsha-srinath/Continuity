@@ -49,11 +49,10 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     document_id = workspace.documents[-1].chunk_id
     field(app, 'selectbox', 'Source document').set_value(document_id).run()
     field(app, 'text_input', 'Document title').set_value('Updated AMI clarification').run()
-    button(app, 'Save & reindex').click().run()
+    button(app, 'Save new revision & reindex').click().run()
     assert not app.exception
-    assert field(app, 'selectbox', 'Source document').value == document_id
-    assert field(app, 'text_input', 'Document title').value == 'Updated AMI clarification'
-    assert any('Document updated.' in message.value for message in app.success)
+    assert len(workspace.documents) == baseline + 2
+    assert any('New revision published.' in message.value for message in app.success)
     app.radio[0].set_value('Chunk explorer').run()
     app.slider[0].set_value(400).run()
     assert workspace.chunk_size == 1800

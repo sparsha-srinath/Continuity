@@ -67,7 +67,7 @@ class KnowledgeAssistant:
 
     def _retrieve_candidates(self, query: str, retrieval_scope: str = "compare") -> list[dict]:
         version = retrieval_scope if retrieval_scope in {"legacy", "mod_v1"} else None
-        scoped = [c for c in self.chunks if version is None or c.system_version == version]
+        scoped = [c for c in self.chunks if (version is None or c.system_version == version) and c.effective_to is None]
         if not scoped:
             return []
         vector_result = self.store.query(query, top_k=min(len(scoped), 20), system_version=version)

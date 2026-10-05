@@ -79,6 +79,11 @@ class ChromaKnowledgeStore:
                     "confidence_score": float(chunk.confidence_score),
                     "system_version": chunk.system_version,
                     "supersedes": chunk.supersedes or "",
+                    "effective_from": chunk.effective_from or chunk.date,
+                    "effective_to": chunk.effective_to or "",
+                    "revision_of": chunk.revision_of or "",
+                    "revision_number": int(chunk.revision_number),
+                    "changed_by": chunk.changed_by or chunk.author,
                 }
             )
             ids.append(chunk.chunk_id)

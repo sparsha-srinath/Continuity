@@ -22,6 +22,12 @@ class SourceChunk:
     keywords: List[str] = field(default_factory=list)
     system_version: str = "legacy"
     supersedes: str | None = None
+    effective_from: str = ""
+    effective_to: str | None = None
+    revision_of: str | None = None
+    revision_number: int = 1
+    changed_by: str = ""
+    changed_at: str = ""
 
 
 @dataclass

@@ -98,3 +98,12 @@ def test_source_revisions_keep_history_and_retrieval_uses_current_guidance():
     assert history[1].supersedes == first
     candidates = workspace.assistant()._retrieve_candidates('retry failed upload', 'legacy')
     assert {item['chunk_id'] for item in candidates} == {current}
+
+
+def test_revision_events_record_the_actor_and_effective_date():
+    workspace = LiveWorkspace(documents=[])
+    workspace.upsert('AMI operations', 'Retry a failed upload twice.', effective_from='2026-01-01')
+    assert workspace.events[0]['changed_by'] == 'Sparsha'
+    assert workspace.events[0]['effective_from'] == '2026-01-01'
+    workspace.reset()
+    assert workspace.events[0]['changed_by'] == 'Sparsha'

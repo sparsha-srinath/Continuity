@@ -86,13 +86,12 @@ def stats(workspace):
 def activity(workspace, limit=5):
     rows = []
     for event in workspace.events[:limit]:
-        provenance = " · ".join(filter(None, [
-            f'Changed by {event["changed_by"]}' if event.get("changed_by") else "",
-            f'Effective {event["effective_from"]}' if event.get("effective_from") else "",
-        ]))
+        effective_date = event.get("effective_from", "")
+        actor = event.get("changed_by", "System")
         rows.append(f'<div class="activity"><span class="time">{event["time"]}</span>'
                     f'<span class="action">{esc(event["action"])}'
-                    f'{f"<small> · {esc(provenance)}</small>" if provenance else ""}</span>'
+                    f'{f"<small> · Effective {esc(effective_date)}</small>" if effective_date else ""}</span>'
+                    f'<span class="user-tag" title="Changed by">{esc(actor)}</span>'
                     f'<span class="rev">REV {event["revision"]:02}</span></div>')
     markup(''.join(rows))
 

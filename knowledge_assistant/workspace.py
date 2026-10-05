@@ -64,9 +64,9 @@ class LiveWorkspace:
         self.metadata = SessionMetadata()
         self.store = None
         self._client = chromadb.EphemeralClient()
-        self._apply(self.baseline, self.chunk_size, "Loaded baseline corpus")
+        self._apply(self.baseline, self.chunk_size, "Loaded baseline corpus", changed_by="System")
 
-    def _apply(self, documents, chunk_size, action):
+    def _apply(self, documents, chunk_size, action, *, changed_by="System", effective_from=""):
         if not 200 <= chunk_size <= 3000:
             raise ValueError("Chunk size must be between 200 and 3000 characters.")
         chunks = split_chunks(documents, max_chars=chunk_size)
@@ -85,7 +85,8 @@ class LiveWorkspace:
         self.revision += 1
         self.events.insert(0, {"revision": self.revision, "action": action,
                                "time": datetime.now().strftime("%H:%M:%S"),
-                               "documents": len(documents), "chunks": len(chunks)})
+                               "documents": len(documents), "chunks": len(chunks),
+                               "changed_by": changed_by, "effective_from": effective_from})
         if previous is not None:
             self._client.delete_collection(previous.collection.name)
 
@@ -126,12 +127,8 @@ class LiveWorkspace:
         else:
             prior = replace(existing, effective_to=effective_date, employment_status="superseded")
             documents = [prior if d.chunk_id == existing.chunk_id else d for d in self.documents] + [document]
-        self._apply(documents, self.chunk_size, ("Updated " if existing else "Added ") + title.strip())
-        self.events[0].update({
-            "changed_by": changed_by,
-            "effective_from": effective_date,
-            "replaces": existing.chunk_id if existing else None,
-        })
+        self._apply(documents, self.chunk_size, ("Updated " if existing else "Added ") + title.strip(),
+                    changed_by=changed_by, effective_from=effective_date)
         return document.chunk_id
 
     def source_history(self, document_id):
@@ -149,7 +146,7 @@ class LiveWorkspace:
         if document.effective_to is not None:
             raise ValueError("Historical sources are retained as an audit record and cannot be removed.")
         self._apply([d for d in self.documents if d.chunk_id != document_id], self.chunk_size,
-                    "Removed " + document.section_title)
+                    "Removed " + document.section_title, changed_by="Sparsha")
 
     def import_codebase(self, files, project, version="legacy"):
         from .codebase_import import MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES, path_issue
@@ -176,14 +173,16 @@ class LiveWorkspace:
                 author="Demo presenter", author_role_at_time="Contributor",
                 date=datetime.now(timezone.utc).date().isoformat(), employment_status="active", confidence_score=0.75,
             )
-        self._apply(list(documents.values()), self.chunk_size, f"Imported {len(files)} files from {project}")
+        self._apply(list(documents.values()), self.chunk_size, f"Imported {len(files)} files from {project}",
+                    changed_by="Sparsha")
 
     def rebuild(self, chunk_size):
-        self._apply(self.documents, chunk_size, f"Rebuilt index · {chunk_size:,} characters per chunk")
+        self._apply(self.documents, chunk_size, f"Rebuilt index · {chunk_size:,} characters per chunk",
+                    changed_by="Sparsha")
 
     def reset(self, empty=False):
         self._apply([] if empty else self.baseline, 1800,
-                    "Cleared knowledge base" if empty else "Restored baseline corpus")
+                    "Cleared knowledge base" if empty else "Restored baseline corpus", changed_by="Sparsha")
 
     def assistant(self, **kwargs):
         return KnowledgeAssistant(chunks=self.chunks, store=self.store,

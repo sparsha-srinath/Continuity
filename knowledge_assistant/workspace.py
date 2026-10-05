@@ -107,18 +107,19 @@ class LiveWorkspace:
         if existing is not None and existing.effective_to is not None:
             raise ValueError("Historical sources cannot be edited. Update the current revision instead.")
         changed_at = datetime.now(timezone.utc).isoformat()
+        changed_by = "Sparsha"
         document = SourceChunk(
             chunk_id="LIVE-" + uuid4().hex[:12], source_file=existing.source_file if existing else "Session upload: " + title.strip(),
             section_title=title.strip(), text=text, system_version=version,
             source_type=source_type, category=existing.category if existing else "live-upload",
             access=existing.access if existing else "internal", entity=existing.entity if existing else title.strip(),
-            author="Demo presenter", author_role_at_time="Contributor",
+            author=changed_by, author_role_at_time="Contributor",
             date=effective_date, employment_status="active", confidence_score=existing.confidence_score if existing else 0.75,
             supersedes=existing.chunk_id if existing else None,
             effective_from=effective_date,
             revision_of=(existing.revision_of or existing.chunk_id) if existing else None,
             revision_number=(existing.revision_number + 1) if existing else 1,
-            changed_by="Demo presenter", changed_at=changed_at,
+            changed_by=changed_by, changed_at=changed_at,
         )
         if existing is None:
             documents = list(self.documents) + [document]
@@ -126,6 +127,11 @@ class LiveWorkspace:
             prior = replace(existing, effective_to=effective_date, employment_status="superseded")
             documents = [prior if d.chunk_id == existing.chunk_id else d for d in self.documents] + [document]
         self._apply(documents, self.chunk_size, ("Updated " if existing else "Added ") + title.strip())
+        self.events[0].update({
+            "changed_by": changed_by,
+            "effective_from": effective_date,
+            "replaces": existing.chunk_id if existing else None,
+        })
         return document.chunk_id
 
     def source_history(self, document_id):

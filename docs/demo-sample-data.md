@@ -96,7 +96,9 @@ Nothing needs to be pasted for this section. These three sources are in the base
 
 ## 5. Live Q&A — before the clarification
 
-> **SAY:** Now let’s say I’m a project manager gathering requirements for the AMI metering-integration feature. Before the team can rebuild it safely, we need to understand how the legacy system handles retries. This is a separate integration example in our sample knowledge base.
+> **SAY:** Let’s say I’m a project manager gathering requirements for the AMI retry feature. AMI means Advanced Metering Infrastructure: it is the integration that moves meter-upload data into the city’s systems. When an upload fails, the integration retries it before sending it to a dead-letter queue for follow-up.
+>
+> Before the team can rebuild or change that feature safely, I need the exact legacy behavior: how many retry attempts it makes, how long it waits between attempts, and what happens after the final failure. I’ll start with Legacy only because I am gathering requirements from the existing application.
 >
 > I'll select Legacy only so we look at what's known about that version, generate the answer, and open the evidence it used.
 

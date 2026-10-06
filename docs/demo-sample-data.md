@@ -82,37 +82,43 @@ Nothing needs to be pasted for this section. These three sources are in the base
 
 > **SAY:** These are indexed passages. For each question, retrieval selects relevant passages, and a separate context packer fits the selected evidence into the model request. The model does not receive the entire knowledge base.
 
-## 4. Live Q&A orientation — choose the right evidence scope
-
-> **SAY:** Before I start the AMI example, let me show how the Q&A scope works. The assistant can search the modernized application only, the legacy application only, or compare both. That matters because an answer should be based on the version of the system we are discussing.
-
-**DO:** Open **Live Q&A**. Point to **Source scope** and briefly select each option without generating an answer:
-
-- **Modernized only:** searches only the .NET modernization sources.
-- **Legacy only:** searches only the PowerBuilder-era application, its database artifacts, and its historical documentation.
-- **Compare both systems:** retrieves evidence from both versions and asks the model to label the differences by version.
-
-> **SAY:** For a question about how the old system currently behaves, I use Legacy only. For a question about the target implementation, I use Modernized only. When the team needs to understand what changed during modernization, I use Compare both.
-
-## 5. Live Q&A — before the clarification
+## 4. Live Q&A — establish the AMI requirements gap
 
 > **SAY:** Let’s say I’m a project manager gathering requirements for the AMI retry feature. AMI means Advanced Metering Infrastructure: it is the integration that moves meter-upload data into the city’s systems. When an upload fails, the integration retries it before sending it to a dead-letter queue for follow-up.
 >
-> Before the team can rebuild or change that feature safely, I need the exact legacy behavior: how many retry attempts it makes, how long it waits between attempts, and what happens after the final failure. I’ll start with Legacy only because I am gathering requirements from the existing application.
+> Before the team can rebuild or change that feature safely, I need the exact legacy behavior: how many retry attempts it makes, how long it waits between attempts, and what happens after the final failure.
 >
-> I'll select Legacy only so we look at what's known about that version, generate the answer, and open the evidence it used.
+> I’ll use the same question in all three scopes. That shows us what is known in the modernized application, what is known in the legacy application, and what a comparison looks like before this feature has been implemented in the modernization.
 
-**DO:** Open **Live Q&A**, choose **Legacy only** under **Source scope**, and paste this into **Your question**:
+**DO:** Open **Live Q&A** and paste this into **Your question**:
 
 ```text
 What are the exact AMI meter retry limits and backoff timings?
 ```
 
-Click **Generate answer**. Open **Cited evidence** or **Retrieved sources**, then click **Pin baseline**.
+### A. Modernized only — no implementation information yet
+
+**DO:** Choose **Modernized only**, then click **Generate answer**.
+
+> **SAY:** The modernization sources do not contain this AMI feature yet, so this scope has no supported retry policy to give us. That is expected: we have not implemented or documented it in the modernized application.
+
+Show the absence of relevant evidence or the answer’s information-gap message. Do not treat a lack of modernized evidence as proof that the feature has no requirement.
+
+### B. Legacy only — basic behavior, but no exact requirements
+
+**DO:** Change **Source scope** to **Legacy only**, click **Generate answer**, open **Cited evidence** or **Retrieved sources**, then click **Pin baseline**.
+
+> **SAY:** The legacy sources give us a starting point: there is retry handling and exponential backoff, but they do not establish the exact retry count or timing. That is the requirements gap I need to take to the client.
 
 **Expected evidence:** **Retry handling** from `MeterDataIntegration.md` describes exponential backoff without exact settings. **Retry discussion** records the documentation gap. Explain that the sources do not establish the exact values. If the generated answer supplies unsupported numbers, call out the mismatch; do not present them as confirmed.
 
-## 6. Add new evidence
+### C. Compare both systems — show the gap across versions
+
+**DO:** Change **Source scope** to **Compare both systems** and click **Generate answer**. Briefly show the version labels and retrieval details, then switch back to **Legacy only**.
+
+> **SAY:** Compare both makes the situation clear: the legacy side has only basic retry information, while the modernized side has no implementation evidence yet. We have identified a specific requirement that needs a client answer before the feature can be carried forward.
+
+## 5. Client clarification — add new legacy evidence
 
 > **SAY:** Once this question is raised, the PM takes that specific gap to the client—in our work, that may be the city—and asks the people who still have that information or locates it in their records. A few days later, the answer comes back, perhaps in an email.
 >
@@ -156,7 +162,7 @@ Review **Chunk preview**, then click **Publish to knowledge base**. Wait for the
 
 > **SAY:** The new source is now indexed. The confirmation shows the new revision and indexed chunks, and the change is attributed to Sparsha in this demo.
 
-## 7. Live Q&A — after the clarification
+## 6. Live Q&A — after the clarification
 
 > **SAY:** A few weeks later, a different person on the team—who wasn't part of that exchange and doesn't know this was ever a question—asks the same thing.
 >
@@ -172,9 +178,9 @@ Open **Before & after**, then inspect the new citation. The evidence supports **
 
 Show **Retrieval details** and click a circled **?** beside a score or parameter. Explain that relevance scores are search scores, not confidence percentages. Retrieved passages and passages sent to the model may differ because of the request-size budget.
 
-## 8. Edit existing evidence — four retries become five
+## 7. Client correction — edit the existing legacy evidence
 
-> **SAY:** Information also gets corrected as discovery continues. Suppose the client confirms that a later firmware update added a fifth retry. We'll update the existing clarification rather than publish a second competing note.
+> **SAY:** The client then corrects the response: a later firmware update added a fifth retry. We’ll update the existing clarification rather than publish a second competing note.
 >
 > The new revision records who changed it, when it applies, and what it replaces. The earlier source remains available in history while new questions use the current revision.
 
@@ -222,6 +228,51 @@ Open **Before & after**. Compare **4 retries** in the pinned answer with **5 ret
 
 > **SAY:** The team can work from the updated understanding and still inspect what changed. We haven't lost the earlier source or left two current documents contradicting each other.
 
+## 8. Implement the requirement in the modernized application
+
+> **SAY:** Now that the PM has a current, client-confirmed requirement, the modernization team can implement it in the .NET application. We should update the modernized source too, so the knowledge base does not stop at a requirement document—it also shows where that requirement was implemented.
+
+**DO:** Open **Knowledge base → Add document**. Use **Modernized** for **New source version**, **Code** for **Source type**, and **2026-10-01** for **Effective from**.
+
+Paste this into **New document title**:
+
+```text
+ami_retry_policy.py
+```
+
+Paste this into **New source content**:
+
+```python
+"""Modernized AMI retry policy derived from the confirmed legacy requirement."""
+
+RETRY_DELAYS_SECONDS = (5, 10, 20, 40, 80)
+MAX_RETRY_ATTEMPTS = len(RETRY_DELAYS_SECONDS)
+FAILED_UPLOAD_DESTINATION = "ami-dead-letter-queue"
+
+
+def retry_policy() -> dict:
+    """Return the retry behavior implemented by the modernized AMI service."""
+    return {
+        "max_retry_attempts": MAX_RETRY_ATTEMPTS,
+        "retry_delays_seconds": RETRY_DELAYS_SECONDS,
+        "failed_upload_destination": FAILED_UPLOAD_DESTINATION,
+    }
+```
+
+Review **Chunk preview**, then click **Publish to knowledge base**.
+
+> **SAY:** This is the implementation side of the same requirement. It is tagged Modernized and Code, so a future team member can distinguish a confirmed legacy requirement from the .NET implementation that carries it forward.
+
+**DO:** Return to **Live Q&A**, select **Compare both systems**, and paste:
+
+```text
+What AMI retry policy does the modernized implementation use, and which current legacy requirement does it preserve?
+```
+
+Generate the answer. Show one legacy citation and the new modernized code citation.
+
+> **SAY:** The comparison now has both sides: the current legacy guidance says five retries with 5, 10, 20, 40, and 80-second delays, and the modernized implementation carries those values into code. This is the point where the requirement becomes traceable implementation.
+
 ## Close the loop — connect the applications, evidence, and current guidance
 
 Choose **Compare both systems** and paste:
@@ -238,9 +289,9 @@ How do BLPTS inspection rules differ between the legacy and modernized systems?
 
 Inspect the system-version labels and source citations. These questions connect the application previews to the indexed implementation and documentation. Do not expect fixed wording.
 
-> **SAY:** We started with a legacy PowerBuilder application and its .NET modernization target. We then looked at how Continuity keeps code, SQL, and operational documents in useful searchable passages. When the AMI answer was missing, the system showed the gap instead of inventing an answer. Once we received a clarification, we recorded it, cited it, and then revised it when the understanding changed.
+> **SAY:** We started with a legacy PowerBuilder application and its .NET modernization target. We then looked at how Continuity keeps code, SQL, and operational documents in useful searchable passages. When the AMI answer was missing, the system showed the gap instead of inventing an answer. The PM obtained a client clarification, recorded it, revised it when the understanding changed, and the modernization team implemented the current requirement in .NET.
 >
-> That brings us full circle: the applications give us the business context, the evidence explains their behavior, and the knowledge workspace makes the team’s learning available to the next person working on the modernization.
+> That brings us full circle—and it is why this is called Continuity. The applications give us the business context, the evidence explains their behavior, and the knowledge workspace carries the confirmed knowledge from the legacy system into the modernized implementation and to the next person working on the project.
 
 ## Reset after the presentation
 

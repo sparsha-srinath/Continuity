@@ -10,13 +10,17 @@ Keep this reference beside Continuity. Use the updated running app at http://127
 - Return to **Overview**. Verify both application cards open. The modernized preview uses Bootstrap assets from a CDN, so check its appearance before presenting.
 - The exact model wording and relevance scores can vary. Present the evidence and any missing information rather than promising a particular generated sentence.
 
-## Opening: two applications, one modernization story (about 60 seconds)
+## Opening (about 60 seconds)
 
 Before touching any screen:
 
 > **SAY:** I’m using two dummy applications for this demonstration. They represent a fictional Business License & Permit Tracking System, or BLPTS. Staff use it to maintain license records, process renewals, calculate fees, and manage inspections.
 >
 > The legacy version is built in PowerBuilder and backed by older database logic. We are currently modernizing it into a .NET-based application. The screens are only one part of that effort. We also have to understand the business rules, the database behavior, the operating knowledge, and the decisions that were never fully documented.
+>
+> We work with the City of San Diego, and part of the work we do is supporting different applications, including modernizing older ones. This demo uses dummy applications, but it reflects the kind of discovery work that happens during a real modernization.
+>
+> I’ll quickly show the legacy application and the modernization target first. Then I’ll use Continuity to show how we inspect the code, SQL, and documents behind the applications; identify a missing answer; record a clarification; and make that knowledge available to the next person on the project.
 
 Presenter note: the opening describes your work context. The following BLPTS examples are synthetic. This demo's knowledge changes persist within the browser session; do not describe it as a durable production knowledge service.
 

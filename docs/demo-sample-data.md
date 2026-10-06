@@ -2,6 +2,16 @@
 
 Keep this reference beside Continuity. Use the updated running app at http://127.0.0.1:8512 (or the port printed by your launcher). Keep the same Continuity browser tab throughout the presentation so the workspace and pinned answers stay together. All application screens, records, and sample evidence here are synthetic; BLPTS is not a City of San Diego production application.
 
+## Demo sequence at a glance
+
+1. Show the two dummy applications: the dated legacy interface and the in-progress modernization target.
+2. Demonstrate Python, SQL, and prose in Chunk explorer.
+3. [Start as the PM gathering AMI retry requirements](#4-live-qa-find-the-missing-ami-requirements): generate the same question with Modernized only, Legacy only, and Compare both systems.
+4. [Ask the client and publish their response](#5-client-clarification-add-the-response-as-legacy-evidence): capture four retries as Legacy evidence, then ask again.
+5. [Edit the same source after a client correction](#7-client-correction-edit-the-existing-document): five retries, with revision history.
+6. [Record the modernized implementation](#8-implement-the-requirement-in-the-modernized-application): publish the C# sample as Modernized evidence, ask Modernized only, then compare both.
+7. Close on Continuity: knowledge carried from discovery through clarification, correction, implementation, and handover.
+
 ## Before the audience arrives
 
 - Start the configured model and verify a Q&A request succeeds. The provider label alone does not confirm that the model is reachable.
@@ -14,35 +24,35 @@ Keep this reference beside Continuity. Use the updated running app at http://127
 
 Before touching any screen:
 
-> **SAY:** I’m using two dummy applications for this demonstration. They represent a fictional Business License & Permit Tracking System, or BLPTS. Staff use it to maintain license records, process renewals, calculate fees, and manage inspections.
+> **SAY:** I'm using two dummy applications for this demo. They show a Business License and Permit Tracking System. Staff use it to look up licenses, process renewals, calculate fees, and manage inspections.
 >
-> The legacy version is built in PowerBuilder and backed by older database logic. We are currently modernizing it into a .NET-based application. The screens are only one part of that effort. We also have to understand the business rules, the database behavior, the operating knowledge, and the decisions that were never fully documented.
+> Let's say the old application was built in PowerBuilder, and we're now rebuilding it in .NET. We need to understand what the old system does and decide what the new one should do.
 >
-> We work with the City of San Diego, and part of the work we do is supporting different applications, including modernizing older ones. This demo uses dummy applications, but it reflects the kind of discovery work that happens during a real modernization.
+> We work with the City of San Diego, supporting applications and modernizing older ones. These are dummy applications, but the questions we'll look at are the kind we come across in that work.
 >
-> I’ll quickly show the legacy application and the modernization target first. Then I’ll use Continuity to show how we inspect the code, SQL, and documents behind the applications; identify a missing answer; record a clarification; and make that knowledge available to the next person on the project.
+> I'll show both applications first. Then we'll look at their code and documents, ask a question, and add the answer when we get it from the client.
 
 Presenter note: the opening describes your work context. The following BLPTS examples are synthetic. This demo's knowledge changes persist within the browser session; do not describe it as a durable production knowledge service.
 
 ## 1. Overview → show the legacy and modernized applications
 
-> **SAY:** Let’s start with the two applications. First is the legacy application, built in PowerBuilder.
+> **SAY:** Let's open the legacy application. This stands in for our old PowerBuilder system.
 
 **DO:** On Overview, click the **Legacy application** card. The whole card is clickable. No separate server or local file link is required.
 
-> **SAY:** You can see how dated this interface looks. It is a desktop-style PowerBuilder application focused on the original operational workflow: looking up licenses and processing renewals. The fee calculation can follow different legacy paths, and the supporting rules are spread across screens, database logic, and older documentation. Rebuilding the screen alone doesn't explain all of that behavior.
+> **SAY:** You can see how dated it looks. A clerk uses this screen to look up a license and process a renewal. Some fee rules are in the screen code and others are in the database. We need to check both to understand how the total is calculated.
 
 **DO:** Show the renewal screen and the **C - Home Occupation** license type. Briefly point to the record, fee fields, and clerk workflow. If using the fee calculation controls, explain that the differing legacy paths are intentional demo material. Do not change or resolve their historical inconsistency during this walkthrough.
 
 **DO:** Click **Return to Continuity overview**, then the **Modernized application** card. Show **Renewal**, then the documented rules. Return using **Return to Continuity overview**.
 
-> **SAY:** Now this is the modernized .NET version, which is still in progress. The technology stack changes the experience and the capabilities: it is a web application with unified fee calculation, documented inspection rules, and multi-year renewals. Some changes are deliberate improvements that the new platform makes easier to deliver. Others must be traced back to legacy behavior and validated with evidence, so we know what to preserve, what to change, and what still needs clarification.
+> **SAY:** This is our example of the .NET version, which is still in progress. It looks different, and some of the features have changed too. It uses one fee calculation, explains the inspection rules, and lets people renew for more than one year. Those are choices the team has made during the rebuild. Moving to a new technology doesn't tell us which rules should change. We still need to confirm that with the client.
 
 **Optional comparison inputs:** Type **C - Home Occupation**, renewal year **2026**, term **1 year** in the modernized calculator. The annual total is **$75**. Change to **3 years** to show the new multi-year feature: **$225 before discount**, **$22.50 discount**, **$202.50 final total**. These values come from the synthetic implementation. They are unrelated to the AMI scenario below.
 
 ## 2. Introduce the Continuity workspace
 
-> **SAY:** This is the Continuity overview. The application cards give us the business context, and the workspace cards take us to the source documents, chunk explorer, and questions. I'll first show how the sources are prepared. Then we'll walk through a situation we actually run into on projects: a question comes up, the answer isn't documented yet, we get a clarification, and a later question can use that new information.
+> **SAY:** Back here, we can open the documents, look at how they are split into chunks, or ask questions. I'll show the chunks first, then walk through a question where we need more information from the client.
 
 **DO:** Click the **Knowledge base** card. Briefly show source types and system versions in the library. Then open **Chunk explorer** using the sidebar. The library is the document inventory; the explorer shows the searchable passages made from one selected document.
 
@@ -54,19 +64,19 @@ Nothing needs to be pasted for this section. These three sources are in the base
 
 **DO:** In **Document to inspect**, choose the legacy **Business Rules** document ending in `blpts_legacy/code/business_rules.py`. Set the limit to **1,800**.
 
-> **SAY:** Python is parsed using its syntax tree. The module description is one chunk and the complete fee-calculation function is another. We keep the symbol name and source lines, so the passage remains traceable to the code.
+> **SAY:** For Python, the parser understands where classes and functions start and end. Here, the file description is one chunk and the fee function is another. The function name and line numbers tell us where the code came from.
 
 **SHOW:** **Boundary strategy: Python symbols**. Open **Full chunk text & metadata** and select the second chunk. Point to `business_rules.calculate_renewal_fee_db_side`, its function kind, and its source lines. At 1,800 characters this sample has two chunks: module information and the complete function.
 
 **DO:** Change to **400**, then back to **1,800**.
 
-> **SAY:** If a function exceeds the limit, it still has to split. Increasing the limit lets that function fit again. Separate functions do not merge just because there is spare space.
+> **SAY:** If I lower the limit, this function has to split. If I raise it again, the whole function fits. Separate functions still stay separate.
 
 ### B. SQL: pack complete statements together
 
 **DO:** Choose the legacy **Seed Data** document ending in `blpts_legacy/code/db/seed_data.sql`. Set the limit to **500**, then **1,800**.
 
-> **SAY:** SQL uses statement boundaries. A chunk can contain several adjacent statements if they fit. At a smaller limit we get more chunks; at a larger limit we can keep more statements together. Semicolons inside strings or comments don't count as statement endings.
+> **SAY:** SQL is handled differently. We keep whole statements together where they fit. Watch what happens when I raise the limit. More statements fit in each chunk, so we get fewer chunks.
 
 **SHOW:** **SQL statements**. For this fixture, expect **7 chunks at 500** and **2 at 1,800**. Open a full chunk to show multiple `INSERT` statements. The card is only a short preview, so use the full-text expander to show all the statements. SQL Server `GO` batch boundaries remain separate. A statement larger than the limit still requires splitting.
 
@@ -74,21 +84,21 @@ Nothing needs to be pasted for this section. These three sources are in the base
 
 **DO:** Choose **BLPTS discovery and handover handbook**. Its file is `blpts_legacy/documents/discovery_and_handover_handbook.md`. Set the limit to **400**, then **1,800**. Scroll through the chunk cards and inspect a chunk from **Review document structure before indexing**.
 
-> **SAY:** This is a deliberately long discovery and handover document. Prose uses headings and paragraphs. Paragraphs from the same section can fit together, but a new heading starts a separate section. We keep the heading and line range with each passage. Changing the limit changes how much of a section fits together without rewriting the source.
+> **SAY:** This is a long document about discovery and handover. Here, we use headings and paragraphs. A larger limit lets more paragraphs from the same section fit together. The heading and line numbers tell us where each chunk came from.
 
 **SHOW:** **Headings / paragraphs**, the heading labels, line ranges, and the source highlighting. The section about reviewing document structure contains several paragraphs, making the difference easy to see. The handbook describes a proposed discovery process; it does not supply missing application settings or resolve the demo's historical conflicts.
 
 **DO:** Return the slider to **1,800**. If **Apply chunk size & rebuild index** is enabled, click it. If it is disabled, the live index already matches. Use the default limit for the Q&A sequence so you are changing the evidence rather than the chunking configuration between answers.
 
-> **SAY:** These are indexed passages. For each question, retrieval selects relevant passages, and a separate context packer fits the selected evidence into the model request. The model does not receive the entire knowledge base.
+> **SAY:** When we ask a question, the app finds relevant chunks and sends the parts that fit to the model. It doesn't send every document for every question.
 
-## 4. Live Q&A — establish the AMI requirements gap
+## 4. Live Q&A: find the missing AMI requirements
 
-> **SAY:** Let’s say I’m a project manager gathering requirements for the AMI retry feature. AMI means Advanced Metering Infrastructure: it is the integration that moves meter-upload data into the city’s systems. When an upload fails, the integration retries it before sending it to a dead-letter queue for follow-up.
+> **SAY:** Let's say I'm a PM gathering requirements for the AMI retry feature. AMI stands for Advanced Metering Infrastructure. In this example, meters send data to the system. If an upload fails, the system tries again.
 >
-> Before the team can rebuild or change that feature safely, I need the exact legacy behavior: how many retry attempts it makes, how long it waits between attempts, and what happens after the final failure.
+> I need to know how many times it tries, how long it waits between attempts, and what happens if they all fail.
 >
-> I’ll use the same question in all three scopes. That shows us what is known in the modernized application, what is known in the legacy application, and what a comparison looks like before this feature has been implemented in the modernization.
+> I'll ask the same question with Modernized only, Legacy only, and Compare both so we can see what information each has.
 
 **DO:** Open **Live Q&A** and paste this into **Your question**:
 
@@ -96,38 +106,38 @@ Nothing needs to be pasted for this section. These three sources are in the base
 What are the exact AMI meter retry limits and backoff timings?
 ```
 
-### A. Modernized only — no implementation information yet
+### A. Modernized only: no AMI information yet
 
 **DO:** Choose **Modernized only**, then click **Generate answer**.
 
-> **SAY:** The modernization sources do not contain this AMI feature yet, so this scope has no supported retry policy to give us. That is expected: we have not implemented or documented it in the modernized application.
+> **SAY:** There's no AMI retry information in the modernized sources yet. For this example, the team hasn't built that feature yet.
 
 Show the absence of relevant evidence or the answer’s information-gap message. Do not treat a lack of modernized evidence as proof that the feature has no requirement.
 
-### B. Legacy only — basic behavior, but no exact requirements
+### B. Legacy only: basic information, but no exact settings
 
 **DO:** Change **Source scope** to **Legacy only**, click **Generate answer**, open **Cited evidence** or **Retrieved sources**, then click **Pin baseline**.
 
-> **SAY:** The legacy sources give us a starting point: there is retry handling and exponential backoff, but they do not establish the exact retry count or timing. That is the requirements gap I need to take to the client.
+> **SAY:** The legacy documents tell us it retries and waits longer between attempts. But they don't say how many times or how long it waits. Those are the details I need to ask the client about.
 
 **Expected evidence:** **Retry handling** from `MeterDataIntegration.md` describes exponential backoff without exact settings. **Retry discussion** records the documentation gap. Explain that the sources do not establish the exact values. If the generated answer supplies unsupported numbers, call out the mismatch; do not present them as confirmed.
 
-### C. Compare both systems — show the gap across versions
+### C. Compare both systems: check what each version has
 
 **DO:** Change **Source scope** to **Compare both systems** and click **Generate answer**. Briefly show the version labels and retrieval details, then switch back to **Legacy only**.
 
-> **SAY:** Compare both makes the situation clear: the legacy side has only basic retry information, while the modernized side has no implementation evidence yet. We have identified a specific requirement that needs a client answer before the feature can be carried forward.
+> **SAY:** Here we can check both versions. The legacy side has some basic information, and the modernized side has none for this feature yet. We still need the client to confirm the settings.
 
-## 5. Client clarification — add new legacy evidence
+## 5. Client clarification: add the response as legacy evidence
 
-> **SAY:** Once this question is raised, the PM takes that specific gap to the client—in our work, that may be the city—and asks the people who still have that information or locates it in their records. A few days later, the answer comes back, perhaps in an email.
+> **SAY:** As the PM, I ask the client how many retries there are and how long the system waits. A few days later, they reply by email with the settings.
 >
-> We capture that response as a source, identify the system it applies to, and publish it to the knowledge base.
+> I'll add that response here, tag it as Legacy, and publish it.
 
 **DO:** Open **Knowledge base → Add document**. Paste this into **New document title**:
 
 ```text
-AMI retry configuration — owner clarification
+AMI retry configuration: owner clarification
 ```
 
 Set **New source version** to **Legacy**, **Source type** to **Document**, and **Effective from** to **2026-09-29**. We are recording the response as a standalone clarification document; Email is also available for importing the original correspondence.
@@ -135,7 +145,7 @@ Set **New source version** to **Legacy**, **Source type** to **Document**, and *
 Paste the complete block into **New source content**:
 
 ```markdown
-# AMI retry configuration — owner clarification
+# AMI retry configuration: owner clarification
 
 Synthetic demo update | Integration Operations | 2026-09-29
 
@@ -160,13 +170,13 @@ duplicate meter readings. Alert ownership rests with Integration Operations.
 
 Review **Chunk preview**, then click **Publish to knowledge base**. Wait for the confirmation directly below the button. Typing alone does not update the index.
 
-> **SAY:** The new source is now indexed. The confirmation shows the new revision and indexed chunks, and the change is attributed to Sparsha in this demo.
+> **SAY:** It's saved now. We can see the new revision and who added it. In this demo, that name is Sparsha.
 
-## 6. Live Q&A — after the clarification
+## 6. Live Q&A: ask again after adding the response
 
-> **SAY:** A few weeks later, a different person on the team—who wasn't part of that exchange and doesn't know this was ever a question—asks the same thing.
+> **SAY:** A few weeks later, someone else joins the team and asks the same question. They weren't on that email thread.
 >
-> We can compare the earlier answer with one generated using the updated knowledge base. The earlier sources lacked the settings; now there is a clarification supporting the exact values, with a citation back to it.
+> I'll ask again. This time the client response is available, so we can get the settings and open the source they came from.
 
 **DO:** Return to **Live Q&A**, keep **Legacy only**, and generate the same question again:
 
@@ -178,18 +188,18 @@ Open **Before & after**, then inspect the new citation. The evidence supports **
 
 Show **Retrieval details** and click a circled **?** beside a score or parameter. Explain that relevance scores are search scores, not confidence percentages. Retrieved passages and passages sent to the model may differ because of the request-size budget.
 
-## 7. Client correction — edit the existing legacy evidence
+## 7. Client correction: edit the existing document
 
-> **SAY:** The client then corrects the response: a later firmware update added a fifth retry. We’ll update the existing clarification rather than publish a second competing note.
+> **SAY:** Now the client comes back with a correction. A firmware update added a fifth retry. I'll open the same document and update it.
 >
-> The new revision records who changed it, when it applies, and what it replaces. The earlier source remains available in history while new questions use the current revision.
+> We can see who changed it, the date it applies from, and the earlier version in the history.
 
-**DO:** Pin the four-retry answer as the new baseline. Open **Knowledge base → Document library**. Select the current **AMI retry configuration — owner clarification** source. Keep the title, **Legacy** version, and **Document** type. Set **Effective from** to **2026-09-30**.
+**DO:** Pin the four-retry answer as the new baseline. Open **Knowledge base → Document library**. Select the current **AMI retry configuration: owner clarification** source. Keep the title, **Legacy** version, and **Document** type. Set **Effective from** to **2026-09-30**.
 
 Replace the entire **Source content** with this block:
 
 ```markdown
-# AMI retry configuration — owner clarification
+# AMI retry configuration: owner clarification
 
 Synthetic demo update | Integration Operations | 2026-09-30
 
@@ -226,44 +236,53 @@ What are the exact AMI meter retry limits and backoff timings?
 
 Open **Before & after**. Compare **4 retries** in the pinned answer with **5 retries** and **5/10/20/40/80-second delays** in the current evidence. Historical answers retain their original evidence snapshot; generating again uses the current index.
 
-> **SAY:** The team can work from the updated understanding and still inspect what changed. We haven't lost the earlier source or left two current documents contradicting each other.
+> **SAY:** The new answer uses five retries. We can still open the earlier revision to see the four-retry guidance it replaced.
 
 ## 8. Implement the requirement in the modernized application
 
-> **SAY:** Now that the PM has a current, client-confirmed requirement, the modernization team can implement it in the .NET application. We should update the modernized source too, so the knowledge base does not stop at a requirement document—it also shows where that requirement was implemented.
+> **SAY:** Let's move forward in the project. The team has now built this feature in .NET using the confirmed settings. We should add the new code to the knowledge base too. I'll use this sample to show that step.
 
 **DO:** Open **Knowledge base → Add document**. Use **Modernized** for **New source version**, **Code** for **Source type**, and **2026-10-01** for **Effective from**.
 
 Paste this into **New document title**:
 
 ```text
-ami_retry_policy.py
+AmiRetryPolicy.cs
 ```
 
 Paste this into **New source content**:
 
-```python
-"""Modernized AMI retry policy derived from the confirmed legacy requirement."""
+```csharp
+// Synthetic modernized AMI retry policy, effective 2026-10-01.
+// Preserves the corrected legacy owner clarification dated 2026-09-30.
+// Five retries after the initial failed upload: 5, 10, 20, 40, 80 seconds.
+namespace Modernized.Ami;
 
-RETRY_DELAYS_SECONDS = (5, 10, 20, 40, 80)
-MAX_RETRY_ATTEMPTS = len(RETRY_DELAYS_SECONDS)
-FAILED_UPLOAD_DESTINATION = "ami-dead-letter-queue"
-
-
-def retry_policy() -> dict:
-    """Return the retry behavior implemented by the modernized AMI service."""
-    return {
-        "max_retry_attempts": MAX_RETRY_ATTEMPTS,
-        "retry_delays_seconds": RETRY_DELAYS_SECONDS,
-        "failed_upload_destination": FAILED_UPLOAD_DESTINATION,
-    }
+public static class AmiRetryPolicy
+{
+    public const int MaxRetryAttempts = 5;
+    public static int[] RetryDelaysSeconds => new[] { 5, 10, 20, 40, 80 };
+    public const string FailedUploadDestination = "ami-dead-letter-queue";
+    public const bool RaiseOperationsAlertAfterFinalFailure = true;
+    public const bool PreserveOriginalUploadIdentifierOnReplay = true;
+}
 ```
 
 Review **Chunk preview**, then click **Publish to knowledge base**.
 
-> **SAY:** This is the implementation side of the same requirement. It is tagged Modernized and Code, so a future team member can distinguish a confirmed legacy requirement from the .NET implementation that carries it forward.
+Presenter note: this sample represents a future completed implementation for the story. Publishing code adds searchable evidence; it does not implement or deploy an AMI service. C# currently uses the safe text chunker, not the Python AST parser.
 
-**DO:** Return to **Live Q&A**, select **Compare both systems**, and paste:
+> **SAY:** I'll tag this as Modernized and Code. We now have the client's legacy guidance and a sample of the code that uses those settings in the new application.
+
+**DO:** Return to **Live Q&A**, select **Modernized only**, and generate the original question again:
+
+```text
+What are the exact AMI meter retry limits and backoff timings?
+```
+
+> **SAY:** At the start, Modernized only had no answer for this question. Now it has the code with five retries and the delay values. Let's open that source.
+
+**DO:** Now select **Compare both systems**, and paste:
 
 ```text
 What AMI retry policy does the modernized implementation use, and which current legacy requirement does it preserve?
@@ -271,9 +290,9 @@ What AMI retry policy does the modernized implementation use, and which current 
 
 Generate the answer. Show one legacy citation and the new modernized code citation.
 
-> **SAY:** The comparison now has both sides: the current legacy guidance says five retries with 5, 10, 20, 40, and 80-second delays, and the modernized implementation carries those values into code. This is the point where the requirement becomes traceable implementation.
+> **SAY:** Now we can compare both. The client confirmed five retries, with waits of 5, 10, 20, 40, and 80 seconds. We can see those same settings in the modernized code.
 
-## Close the loop — connect the applications, evidence, and current guidance
+## Closing: coming full circle
 
 Choose **Compare both systems** and paste:
 
@@ -289,9 +308,9 @@ How do BLPTS inspection rules differ between the legacy and modernized systems?
 
 Inspect the system-version labels and source citations. These questions connect the application previews to the indexed implementation and documentation. Do not expect fixed wording.
 
-> **SAY:** We started with a legacy PowerBuilder application and its .NET modernization target. We then looked at how Continuity keeps code, SQL, and operational documents in useful searchable passages. When the AMI answer was missing, the system showed the gap instead of inventing an answer. The PM obtained a client clarification, recorded it, revised it when the understanding changed, and the modernization team implemented the current requirement in .NET.
+> **SAY:** We started with a question the documents couldn't fully answer. The PM asked the client, added the response, and updated it when the client corrected it. Then the team built the feature and added the new code.
 >
-> That brings us full circle—and it is why this is called Continuity. The applications give us the business context, the evidence explains their behavior, and the knowledge workspace carries the confirmed knowledge from the legacy system into the modernized implementation and to the next person working on the project.
+> That brings us full circle. The next person can find the requirement, see what changed, and check how it was implemented. That's what we mean by Continuity.
 
 ## Reset after the presentation
 

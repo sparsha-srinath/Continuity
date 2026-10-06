@@ -45,8 +45,9 @@ def test_comparison_retrieval_and_context_retain_implementations(assistant):
     candidates = assistant._retrieve_candidates(QUESTION)
     selected, system, user, schema, budget = assistant._prepare_context(QUESTION, candidates, "compare")
     assert {"BLPTS-LEGACY-FEE", "MOD-CODE-FEE", "MOD-CODE-DISCOUNT"} <= {
-        c["chunk_id"] for c in selected
+        c["chunk_id"].split("::part-")[0] for c in selected
     }
+    assert any("def calculate_multi_year_total" in c["text"] for c in selected)
     assert {c["system_version"] for c in selected} == {"legacy", "mod_v1"}
     assert len((system + user).encode("utf-8")) <= budget
     assert schema["properties"]["citations"]["items"]["enum"] == list(range(len(selected)))

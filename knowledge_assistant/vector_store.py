@@ -84,6 +84,13 @@ class ChromaKnowledgeStore:
                     "revision_of": chunk.revision_of or "",
                     "revision_number": int(chunk.revision_number),
                     "changed_by": chunk.changed_by or chunk.author,
+                    "chunk_strategy": chunk.chunk_strategy,
+                    "language": chunk.language,
+                    "symbol_name": chunk.symbol_name,
+                    "symbol_kind": chunk.symbol_kind,
+                    "heading": chunk.heading,
+                    "line_start": chunk.line_start,
+                    "line_end": chunk.line_end,
                 }
             )
             ids.append(chunk.chunk_id)

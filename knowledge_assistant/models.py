@@ -28,6 +28,13 @@ class SourceChunk:
     revision_number: int = 1
     changed_by: str = ""
     changed_at: str = ""
+    chunk_strategy: str = ""
+    language: str = ""
+    symbol_name: str = ""
+    symbol_kind: str = ""
+    heading: str = ""
+    line_start: int = 0
+    line_end: int = 0
 
 
 @dataclass

@@ -1,86 +1,45 @@
-﻿# A live demo with a before and after
+﻿# Presenting the Continuity demo
 
-Run `./run_demo.ps1 -Install` the first time, then `./run_demo.ps1` for later
-sessions. Open http://127.0.0.1:8502. Use `-Port 8503` if needed. Python 3.11+
-is required. Other platforms can use `python -m streamlit run app.py` after
-installing requirements. Start your configured model before presenting.
-The sidebar names the configured provider/model; it is not a health check.
+Use [the complete presenter script and copy-and-paste reference](demo-sample-data.md) as the single source for narration, questions, document drafts, expected results, and effective dates.
 
-Keep [the copy-and-paste demo reference](demo-sample-data.md) open beside the
-app. Questions and document
-drafts start empty; the reference contains all text needed for the steps below.
+## Preparation
 
-## Five-minute presentation
+Run `./run_demo.ps1 -Install` the first time, then `./run_demo.ps1 -Port 8512` when that port is available. Use the address printed by the launcher. Do not launch another instance on an occupied port. The current development instance uses http://127.0.0.1:8512.
 
-1. **Overview:** introduce the real pipeline: source documents, chunking,
-   retrieval, and grounded generation. Counts reflect the current index.
-2. **Live Q&A:** paste the AMI retry question from the reference, select
-   **Legacy only**, and click **Generate answer**. Open the cited evidence. The
-   baseline has only a general backoff description and an old email about
-   missing documentation. Click **Pin baseline**.
-3. **Add new evidence:** click **Add document** or open **Knowledge base → Add document**,
-   then paste the title and full AMI owner clarification from the reference.
-   Set the version to **Legacy** and type to **Document**. Review the chunk preview, then click **Publish to knowledge
-   base**. The KB revision and document/chunk counts update immediately.
-4. **Chunk explorer:** select the new source. Adjust the character limit to
-   preview boundaries. **Apply chunk size & rebuild index** makes the preview
-   the actual index for all documents. The colored source text and chunk cards
-   show the same exact passages, with no overlap.
-5. **Live Q&A:** generate the same question again. Open **Before & after**,
-   inspect the new citation, and show the **Retrieval details** card. Click a
-   circled **?** beside a score or metric for its definition.
-   The newly supplied values are 4 retries with 5/10/20/40-second delays; this
-   is sample evidence, not a prepared answer. Model responses can vary.
-6. **Knowledge base → Reset & activity:** restore the baseline for another
-   presentation. Or clear the KB to show that no evidence yields no answer,
-   then add a source from scratch. Old answers remain labeled with their KB
-   revision and keep source snapshots from the time they were generated.
+Start your configured model before presenting and verify a question succeeds. The provider label is configuration information, not a health check. Document management and chunk previews work without a model; generated answers require one.
 
-## Additional live interactions
+Restore the baseline before the demo to load the latest repository sources, including `blpts_legacy/documents/discovery_and_handover_handbook.md`. Keep the same browser tab throughout the presentation.
 
-- **Document library** shows a searchable inventory of all KB documents,
-  including version, source type, chunk count, character count, and source path.
-  Use the source selector below the table to inspect or edit a document.
-  Colored type tags distinguish Email, Code, Document, Ticket, Runbook, and
-  Spreadsheet sources. Filter by type or change **Document type** in the editor
-  and use **Save & reindex** to update the tag throughout the workspace.
-- **Import codebase** accepts a repository ZIP or multiple source files.
-  Set a codebase name and version, click **Preview codebase import**, review
-  included/skipped paths, optionally exclude files, then **Import files & index**.
-  ZIP uploads preserve folder structure. Reimporting the same name/version/path
-  updates that document; sources not present in a later upload are retained.
-  The importer reads text; it does not execute code or build the project.
-  Limits per batch: 20 MB uploaded, 10 MB expanded source, 500 supported files,
-  and 500 KB per file. Split larger repositories. Dependencies, build output,
-  binary files, and common credential filenames are skipped with reasons.
-  To package committed files from a Git repository, use
-  `git archive --format=zip --output=codebase.zip HEAD` in that repository.
-  This command excludes uncommitted changes.
-- Filter the document library by title/path and system version.
-- Edit a source and click **Save & reindex**, or remove it and its chunks.
-- Upload UTF-8 .txt, .md, .py, .sql, .csv, or .json content (500 KB maximum),
-  click **Use uploaded content**, review the draft, then publish.
-- Compare both system versions for BLPTS renewal fees or inspection rationale.
-- Change a sample value, regenerate the same question, and inspect the changed
-  evidence rather than relying on predetermined wording.
-- Download cited passages or export the current documents as a JSON snapshot.
+## Presentation order
 
-## What is real, and what is isolated
+1. **Opening:** explain the knowledge gaps that make modernization difficult. Identify the following BLPTS scenario as synthetic.
+2. **Overview → Legacy application:** introduce licenses, renewals, fees, and inspections. The whole card opens the embedded interactive application preview.
+3. **Return to Continuity overview → Modernized application:** show the corresponding web workflow, unified calculation, and multi-year renewal. Return to the same Continuity workspace.
+4. **Knowledge base:** show the document inventory, source tags, and system versions.
+5. **Chunk explorer:** use legacy `business_rules.py` for Python symbols, legacy `seed_data.sql` for statement packing, and **BLPTS discovery and handover handbook** for headings and paragraphs. Restore the 1,800-character limit before Q&A.
+6. **Live Q&A, before:** ask the AMI question with **Legacy only**, inspect the missing evidence, and **Pin baseline**.
+7. **Add document:** publish the four-retry owner clarification from the reference.
+8. **Live Q&A, after:** regenerate the same question, open **Before & after**, inspect the citation, and explain retrieval diagnostics.
+9. **Document library:** update that existing clarification to five retries with **Save new revision & reindex**. Show **Source history**, effective dates, and the Sparsha author tag.
+10. **Live Q&A, correction:** compare the four-retry answer with the new five-retry evidence. Optionally finish with a comparison question linking the legacy and modernized BLPTS sources.
 
-All answers use the existing live model pipeline, including context budgeting,
-JSON validation, citation validation, and explicit failures. Retrieval uses BM25
-with a small hashed lexical vector tie-breaker in a real Chroma collection.
-The displayed scores are relevance scores, not confidence probabilities.
-Chunk size is measured in characters, not model tokens.
+The application previews use the existing repository HTML. The legacy preview is self-contained; the modernized preview loads Bootstrap assets from a CDN. Check both before presenting. No separate static server is required when opening them from Overview. Navigating back preserves the Continuity workspace; the embedded application preview itself may reset when reopened.
 
-The corpus and provided owner-clarification draft are synthetic. There are no
-scripted answers. A missing/stopped model produces an explicit error with
-retrieved sources still available; editing, reset, and chunk exploration do not
-require a model. Citation validation checks membership, not factual entailment.
+## Demonstration boundaries
 
-Each browser session has its own documents and Chroma collection. Changes do
-not alter repository files or the normal persistent index. A refresh/new browser
-session or server restart can start a fresh baseline; use the export action if
-you want a copy of your documents. The JSON export is an archival snapshot,
-not an automatic workspace import format. Use the same browser tab throughout
-one demonstration to retain pinned answers and uploaded sources.
+All sample applications and source records are synthetic. Responses are generated live, so wording and scores vary. Search scores are relevance scores, not confidence percentages. Citation validation checks that a cited passage exists in the supplied evidence; it does not prove every claim is supported.
+
+Python uses AST symbol boundaries. SQL packs adjacent statements within the selected maximum. Prose packs paragraphs within headings. Oversized units can still split. The explorer shows a preview until **Apply chunk size & rebuild index** is used. A stable chunk count does not necessarily mean the boundaries are unchanged.
+
+The long handbook is proposed discovery guidance, not authoritative historical business-rule evidence. The AMI clarification is deliberately absent from the baseline. Do not publish it until the baseline answer has been generated and pinned.
+
+Each browser session owns its documents and Chroma index. Source revisions, effective dates, and the demo author label illustrate provenance within that session; they are not a persistent production audit service or authenticated identity system. A new session or server restart can lose edits. Export documents before resetting if you need an archival copy.
+
+## Other supported interactions
+
+- Import a ZIP or multiple source files through **Knowledge base → Import codebase**. The importer reads text without executing it, preserves paths, and previews skipped files.
+- Tag sources as documents, email, code, tickets, or other supported types.
+- Filter the document library, inspect historical revisions, or export current workspace documents.
+- Clear the knowledge base to demonstrate missing evidence, then restore it before another presentation.
+
+Follow the detailed reference for exact field labels and copy-and-paste content rather than improvising new values during the live demonstration.

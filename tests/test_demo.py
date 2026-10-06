@@ -60,10 +60,10 @@ def test_new_evidence_reaches_live_generator_and_reset_removes_it():
     new_id = workspace.upsert('AMI retry configuration', AMI_UPDATE)
     result = workspace.assistant(provider_config=ProviderConfig(), answer_generator=generate).answer_question(AMI_QUESTION, 'legacy')
     assert result['generation_method'] == 'model'
-    assert any(c['chunk_id'] == new_id and '5 seconds, 10 seconds' in c['text'] for c in seen[-1])
+    assert any(c['chunk_id'].split('::part-')[0] == new_id and '5 seconds, 10 seconds' in c['text'] for c in seen[-1])
     workspace.reset()
     workspace.assistant(provider_config=ProviderConfig(), answer_generator=generate).answer_question(AMI_QUESTION, 'legacy')
-    assert not any(c['chunk_id'] == new_id for c in seen[-1])
+    assert not any(c['chunk_id'].split('::part-')[0] == new_id for c in seen[-1])
 
 
 def test_failed_rebuild_preserves_previous_revision(monkeypatch):
@@ -105,5 +105,6 @@ def test_revision_events_record_the_actor_and_effective_date():
     workspace.upsert('AMI operations', 'Retry a failed upload twice.', effective_from='2026-01-01')
     assert workspace.events[0]['changed_by'] == 'Sparsha'
     assert workspace.events[0]['effective_from'] == '2026-01-01'
+    assert len(workspace.events[0]['time'].split()) >= 2
     workspace.reset()
     assert workspace.events[0]['changed_by'] == 'Sparsha'

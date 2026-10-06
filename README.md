@@ -87,7 +87,16 @@ The related Jira issues were created in the connected `KAN` project: discovery `
 
 ### Retrieval and generation diagnostics
 
-Answers are generated from retrieved passages; there are no question-specific answers or factual fallbacks. Long records are split at paragraph/line boundaries (up to 1,800 characters) and ranked using BM25 over content, titles and filenames. Chroma's hashed lexical vectors supply a small ranking tie-breaker; these are not trained semantic embeddings. Comparison retrieval interleaves both versions. A per-request byte budget selects exact source excerpts while reserving room for instructions and output.
+Answers are generated from retrieved passages; there are no question-specific answers or factual fallbacks. Records are split by source structure (up to 1,800 characters by default) and ranked using BM25 over content, titles and filenames. Chroma's hashed lexical vectors supply a small ranking tie-breaker; these are not trained semantic embeddings. Comparison retrieval interleaves both versions. A per-request byte budget selects exact source excerpts while reserving room for instructions and output.
+
+Chunk boundaries depend on the source format:
+
+- **Python (`.py`, `.pyi`):** Python's built-in `ast` parser separates module content, classes, and functions, including decorators and nested definitions. Chunks record the qualified symbol name, symbol kind, and source line range. Parsing does not execute the source.
+- **Prose:** Markdown/RST headings define sections; adjacent paragraphs are packed within the character limit. Fenced code blocks remain together when they fit. Each chunk records its heading and line range.
+- **SQL (`.sql`):** Adjacent complete statements are packed into a chunk up to the character limit; increasing the limit can therefore combine more statements. Semicolons define statement boundaries outside quoted strings, quoted identifiers, comments, and PostgreSQL dollar-quoted bodies. SQL Server `GO` ends a batch and prevents packing across that boundary. This is a lexical splitter, not a complete dialect parser: procedural blocks with unquoted internal semicolons and custom delimiter directives are not grouped as a single statement.
+- **Fallback:** Unsupported code formats and malformed Python/SQL use bounded paragraph/line splitting. Any oversized structural unit is also split at line breaks or the character limit. No source text is rewritten and chunks do not overlap.
+
+The Chunk explorer displays the selected strategy, symbol or heading, and source lines. Metadata is also stored in Chroma. Retrieval allows up to three structural chunks per file (two for fallback text), within the existing eight-passage total limit. Structural changes can move evidence from a document's first chunk to a later `::part-N` chunk; document identity remains the prefix. Start a new browser session after upgrading the splitter to regenerate the live index and previews together.
 
 For local Ollama, the app uses `/api/chat` with an explicit context size and a JSON schema restricting citation references to the evidence actually sent. It validates responses, retries a malformed answer once, and reports model/validation errors separately from empty retrieval. Retrieved sources remain inspectable on error. The document viewer highlights the exact passage sent to the model. Citation validation checks reference membership, not independent factual entailment.
 

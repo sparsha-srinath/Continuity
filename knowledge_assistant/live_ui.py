@@ -10,6 +10,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 
 from .llm_provider import ProviderError, load_provider_config
@@ -173,18 +174,46 @@ def sidebar(workspace):
                f'<strong>{esc(model)}</strong><small>{esc(detail)}</small></div>')
 
 
+def overview_card(title, description, key, callback):
+    with st.container(key=f"overview-card-{key}"):
+        st.button(f"**{title}**  \n{description}", key=f"overview-open-{key}",
+                  on_click=callback, use_container_width=True)
+
+
 def overview(workspace):
+    application = st.session_state.get("overview_application")
+    if application in {"legacy", "modernized"}:
+        st.button("Return to Continuity overview", on_click=lambda: st.session_state.pop("overview_application", None))
+        title = "Legacy BLPTS application" if application == "legacy" else "Modernized BLPTS application"
+        st.subheader(title)
+        st.caption("Interactive synthetic application preview. Return to Overview to continue with the same knowledge workspace.")
+        root = Path(__file__).resolve().parents[1]
+        path = root / ("blpts_dummy_app/ui/blpts_renewal_screen.html" if application == "legacy"
+                       else "blpts_mod_app/ui/index.html")
+        components.html(path.read_text(encoding="utf-8"), height=1000, scrolling=True)
+        return
     markup('<div class="hero"><div class="eyebrow">Overview</div>'
-           '<h1>Knowledge workspace</h1>'
-           '<p>Manage source documents, inspect indexed passages, and generate answers '
-           'using the configured model and knowledge base.</p>'
+           '<h1>Application modernization workspace</h1>'
+           '<p>Explore the legacy and modernized applications, then review the knowledge behind their behavior. '
+           'Use source evidence to investigate missing or conflicting information and record what the team learns.</p>'
            '<div class="hero-foot"><span>Document management</span><span>Chunk inspection</span>'
            '<span>Questions and source citations</span></div>'
            '<div class="hero-art" aria-hidden="true"><div class="orbit"></div><div class="orbit inner"></div>'
            '<div class="art-document"><span></span><span></span><span></span><span></span><span></span><span></span></div>'
            '<div class="art-chip one">01 / source.md</div><div class="art-chip two">02 / chunks</div>'
            '<div class="art-chip three">03 / answer and citations</div></div></div>')
-    stats(workspace)
+    st.subheader("The applications")
+    st.write("BLPTS is a synthetic Business License & Permit Tracking System covering license records, renewals, "
+             "fees, and inspections. These interactive examples illustrate the modernization scenario; they are not City of San Diego production systems.")
+    for column, key, title, description in zip(
+        st.columns(2, gap="medium"), ["legacy", "modernized"],
+        ["Legacy application", "Modernized application"],
+        ["A desktop-style licensing workflow with separate fee-calculation paths and incomplete rule history.",
+         "A web interface with unified fee calculation, documented inspection rules, and multi-year renewals."],
+    ):
+        with column:
+            overview_card(title, description, key,
+                          lambda selected=key: st.session_state.update(overview_application=selected))
     markup('<div class="section-heading"><h2>Workspace tools</h2></div>')
     cards = [("▤", "Knowledge base", "View, add, edit, or remove source documents. Publishing and saving rebuild the search index.", "Knowledge base", "Open knowledge base"),
              ("▦", "Chunk explorer", "Inspect passage boundaries, preview a different chunk size, and rebuild the index.", "Chunk explorer", "Open chunk explorer"),
@@ -192,21 +221,7 @@ def overview(workspace):
     for index, (column, card) in enumerate(zip(st.columns(3, gap="medium"), cards), 1):
         icon, title, description, page, action = card
         with column:
-            markup(f'<div class="feature"><span class="feature-number">0{index}</span><span class="icon">{icon}</span>'
-                   f'<h3>{title}</h3><p>{description}</p></div>')
-            st.button(action, on_click=go, args=(page,), use_container_width=True)
-    markup('<div class="flow"><div class="flow-node"><b>01 &nbsp; Add documents</b><small>Upload files or paste text</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>02 &nbsp; Split into chunks</b><small>Create searchable passages</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>03 &nbsp; Retrieve passages</b><small>Find matches for the question</small></div>'
-           '<span class="flow-arrow">→</span><div class="flow-node"><b>04 &nbsp; Generate an answer</b><small>Use selected passages as context</small></div></div>')
-    left, right = st.columns([1.25, 1], gap="large")
-    with left:
-        markup('<div class="section-heading"><h2>Compare KB revisions</h2></div>')
-        st.write("Generate an answer and pin it as a baseline. Add or update a document, then ask the same "
-                 "question again to compare the answers and their sources. The demo reference contains sample questions and documents.")
-    with right:
-        markup('<div class="section-heading"><h2>Recent KB changes</h2><span>Latest four changes</span></div>')
-        activity(workspace, 4)
+            overview_card(title, description, page.replace(" ", "-"), lambda target=page: go(target))
 
 
 def preview_document(title, text, version="legacy"):
@@ -228,8 +243,11 @@ def chunk_cards(chunks, limit=None):
     offset = 0
     for index, chunk in enumerate(chunks[:limit] if limit else chunks):
         end = offset + len(chunk.text)
+        structure = chunk.symbol_name or chunk.heading
+        structure_label = f'{structure} · ' if structure else ''
         markup(f'<div class="chunk-card" style="--chunk-color:{COLORS[index % len(COLORS)]}">'
                f'<b>Chunk {index + 1:02}</b><small>{len(chunk.text):,} chars · {offset:,}–{end:,}</small>'
+               f'<small>{esc(structure_label)}Lines {chunk.line_start}–{chunk.line_end}</small>'
                f'<p>{esc(chunk.text[:240])}{"…" if len(chunk.text) > 240 else ""}</p></div>')
         offset = end
 
@@ -330,7 +348,7 @@ def knowledge_base(workspace):
                     st.rerun()
                 except (UnicodeError, ValueError) as error:
                     st.error(f"Cannot read this source as UTF-8 text: {error}")
-            title = st.text_input("New document title", key="draft_title", placeholder="e.g. AMI retry owner clarification")
+            title = st.text_input("New document title", key="draft_title")
             text = st.text_area("New source content", key="draft_text", height=300, placeholder="Paste the document text to index…")
             version, kind = st.columns(2)
             system = version.selectbox("New source version", ["legacy", "mod_v1"], format_func=lambda v: "Legacy" if v == "legacy" else "Modernized")
@@ -437,20 +455,40 @@ def chunk_explorer(workspace):
     names = {d.chunk_id: f"{type_label(d.source_type)} · {d.section_title} · {len(d.text):,} chars · {counts[d.chunk_id]} indexed chunks"
              for d in workspace.documents}
     default = max(range(len(workspace.documents)), key=lambda i: len(workspace.documents[i].text))
-    selected = source.selectbox("Document to inspect", list(names), index=default, format_func=lambda key: names[key])
+    selected = source.selectbox("Document to inspect", list(names), index=default, format_func=lambda key: names[key],
+                                key="chunk-explorer-document")
     document = next(d for d in workspace.documents if d.chunk_id == selected)
-    chunk_size = size.slider("Maximum characters per chunk", 200, 3000, workspace.chunk_size, 100,
-                             key=f"chunk-size-{workspace.revision}")
+    # Keep the widget identity stable across rebuilds. Sync only when the live
+    # size changes (including a baseline reset), not on every preview rerun.
+    if ("chunk-preview-size" not in st.session_state
+            or st.session_state.get("chunk-preview-index-size") != workspace.chunk_size):
+        st.session_state["chunk-preview-size"] = workspace.chunk_size
+    st.session_state["chunk-preview-index-size"] = workspace.chunk_size
+    chunk_size = size.slider("Maximum characters per chunk", 200, 3000, step=100,
+                             key="chunk-preview-size",
+                             help="Release the slider to refresh the preview. SQL chunks pack adjacent statements up to this limit.")
     parts = workspace.document_chunks(selected, chunk_size)
-    changed = chunk_size != workspace.chunk_size
+    indexed_parts = [p for p in workspace.chunks if p.chunk_id.split("::part-")[0] == selected]
+    same_boundaries = [p.text for p in parts] == [p.text for p in indexed_parts]
+    changed = chunk_size != workspace.chunk_size or not same_boundaries
     a, b, c = st.columns([1, 1, 1.3])
     a.metric("Document length", f"{len(document.text):,}", help="Characters in the source document")
     b.metric("Preview chunks" if changed else "Indexed chunks", len(parts))
-    c.metric("Boundary strategy", "Paragraph → line", help="No overlap. Split at paragraph or line boundaries when possible, then the character limit.")
+    strategy_labels = {"python-ast": "Python symbols", "prose-structure": "Headings / paragraphs",
+                       "sql-statements": "SQL statements", "text-fallback": "Text fallback"}
+    c.metric("Boundary strategy", strategy_labels.get(parts[0].chunk_strategy, "Text fallback") if parts else "Empty source",
+             help="Python uses module, class, and function boundaries; prose uses headings and paragraphs; SQL packs adjacent complete statements up to the limit. Oversized units split at line breaks or the character limit.")
     preview_notice = st.empty()
     single_chunk_notice = st.empty()
-    if changed:
+    if chunk_size != workspace.chunk_size:
         preview_notice.info(f"Previewing {chunk_size:,} characters. The live index still uses {workspace.chunk_size:,} until you rebuild.")
+    elif not same_boundaries:
+        preview_notice.info("The preview uses updated chunk boundaries. Rebuild the index to use them for retrieval.")
+    if changed and same_boundaries:
+        st.caption("Preview recalculated: boundaries are unchanged because the same structural units fit this limit. "
+                   "A maximum is a cap, not a target chunk length.")
+    if parts:
+        st.caption(f"Preview limit: {chunk_size:,} characters · Largest preview chunk: {max(len(p.text) for p in parts):,} characters")
     if len(parts) == 1:
         single_chunk_notice.info(f"One chunk is expected: this document has {len(document.text):,} characters and the selected limit is "
                 f"{chunk_size:,}. This view shows one document, not the entire KB. "
@@ -460,7 +498,7 @@ def chunk_explorer(workspace):
     if rebuild_clicked:
         mutate(workspace, lambda: workspace.rebuild(chunk_size), "Index rebuilt with the new chunk boundaries.",
                "chunk_rebuild", feedback)
-    st.caption("Matching colors connect the source text to its chunks. Boundaries use characters, not model tokens; passages have no overlap.")
+    st.caption("Matching colors connect the source text to its chunks. Structure determines boundaries; the character limit caps oversized units. Passages have no overlap.")
     left, right = st.columns([1.35, 1], gap="large")
     with left:
         st.subheader("Source text")
@@ -478,7 +516,11 @@ def chunk_explorer(workspace):
         with st.expander("Full chunk text & metadata"):
             st.code(parts[choice].text, language="text", wrap_lines=True)
             st.json({"chunk_id": parts[choice].chunk_id, "system_version": document.system_version,
-                     "source_type": document.source_type, "characters": len(parts[choice].text)})
+                     "source_type": document.source_type, "characters": len(parts[choice].text),
+                     "strategy": parts[choice].chunk_strategy, "language": parts[choice].language,
+                     "symbol": parts[choice].symbol_name, "symbol_kind": parts[choice].symbol_kind,
+                     "heading": parts[choice].heading,
+                     "line_start": parts[choice].line_start, "line_end": parts[choice].line_end})
 
 
 def parameter_help(label, explanation):
@@ -677,6 +719,11 @@ def run():
                 st.session_state.workspace = LiveWorkspace()
         startup_slot.empty()
     workspace = st.session_state.workspace
+    # Streamlit can reload this module while retaining instances created by the
+    # previous workspace class. Upgrade their methods without losing documents,
+    # history, or the existing index. The preview can then offer a rebuild.
+    if type(workspace) is not LiveWorkspace:
+        workspace.__class__ = LiveWorkspace
     sidebar(workspace)
     page = st.session_state.page
     st.session_state.mobile_page = page

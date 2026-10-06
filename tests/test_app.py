@@ -23,6 +23,20 @@ def paste_sample_document(app):
     field(app, 'text_area', 'New source content').set_value(AMI_UPDATE).run()
 
 
+def test_overview_cards_open_applications_and_keep_the_workspace():
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    workspace = app.session_state['workspace']
+    for version in ('legacy', 'modernized'):
+        app.button(key=f'overview-open-{version}').click().run()
+        assert not app.exception
+        assert app.session_state['overview_application'] == version
+        button(app, 'Return to Continuity overview').click().run()
+        assert app.session_state['workspace'] is workspace
+    app.button(key='overview-open-Knowledge-base').click().run()
+    assert app.session_state['page'] == 'Knowledge base'
+    assert not app.exception
+
+
 def test_workspace_pages_preview_publish_clear_and_restore():
     app = AppTest.from_file(APP, default_timeout=30).run()
     assert not app.exception
@@ -67,6 +81,67 @@ def test_workspace_pages_preview_publish_clear_and_restore():
     assert not app.exception
     assert len(workspace.documents) == baseline
     assert workspace.chunk_size == 1800
+
+
+def test_chunk_preview_updates_repeatedly_and_preserves_document_after_rebuild():
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    app.radio[0].set_value('Chunk explorer').run()
+    workspace = app.session_state['workspace']
+    document = next(d for d in workspace.documents if d.source_file.endswith('business_rules.py'))
+    field(app, 'selectbox', 'Document to inspect').set_value(document.chunk_id).run()
+    slider_id = app.slider[0].id
+    for limit in (400, 700, 900):
+        app.slider[0].set_value(limit).run()
+        assert not app.exception
+        assert field(app, 'selectbox', 'Document to inspect').value == document.chunk_id
+        expected = workspace.document_chunks(document.chunk_id, limit)
+        assert next(m for m in app.metric if m.label == 'Preview chunks').value == str(len(expected))
+        assert app.code[0].value.strip() == expected[0].text.strip()
+    button(app, 'Apply chunk size & rebuild index').click().run()
+    assert field(app, 'selectbox', 'Document to inspect').value == document.chunk_id
+    assert app.slider[0].id == slider_id
+    for limit in (300, 1800, 2000):
+        app.slider[0].set_value(limit).run()
+        assert not app.exception
+        assert field(app, 'selectbox', 'Document to inspect').value == document.chunk_id
+        expected = workspace.document_chunks(document.chunk_id, limit)
+        assert next(m for m in app.metric if m.label == 'Preview chunks').value == str(len(expected))
+        assert app.code[0].value.strip() == expected[0].text.strip()
+    assert any('boundaries are unchanged' in caption.value for caption in app.caption)
+    app.radio[0].set_value('Knowledge base').run()
+    button(app, 'Restore baseline corpus').click().run()
+    app.radio[0].set_value('Chunk explorer').run()
+    assert app.slider[0].value == 1800
+
+
+def test_old_session_uses_current_sql_packer_without_losing_documents():
+    class PreviousWorkspace(LiveWorkspace):
+        def document_chunks(self, document_id, size=None):
+            raise AssertionError('Retained workspace is using outdated methods')
+
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    workspace = app.session_state['workspace']
+    added_id = workspace.upsert('Session note', 'Keep this source through a code reload.')
+    original_store = workspace.store
+    events = list(workspace.events)
+    workspace.__class__ = PreviousWorkspace
+    app.radio[0].set_value('Chunk explorer').run()
+    assert not app.exception
+    assert type(workspace) is LiveWorkspace
+    assert workspace.store is original_store
+    assert workspace.events == events
+    assert any(d.chunk_id == added_id for d in workspace.documents)
+    document = next(d for d in workspace.documents
+                    if d.source_file.endswith('seed_data.sql') and d.system_version == 'legacy')
+    field(app, 'selectbox', 'Document to inspect').set_value(document.chunk_id).run()
+    counts = []
+    for limit in (500, 1800):
+        app.slider[0].set_value(limit).run()
+        assert not app.exception
+        parts = workspace.document_chunks(document.chunk_id, limit)
+        counts.append(len(parts))
+        assert any(part.text.count(';') > 1 for part in parts)
+    assert counts == [7, 2]
 
 
 def test_publish_failure_preserves_draft_and_allows_retry(monkeypatch):

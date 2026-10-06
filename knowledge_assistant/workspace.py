@@ -66,7 +66,7 @@ class LiveWorkspace:
         self._client = chromadb.EphemeralClient()
         self._apply(self.baseline, self.chunk_size, "Loaded baseline corpus", changed_by="System")
 
-    def _apply(self, documents, chunk_size, action, *, changed_by="System", effective_from=""):
+    def _apply(self, documents, chunk_size, action, *, changed_by="Sparsha", effective_from=""):
         if not 200 <= chunk_size <= 3000:
             raise ValueError("Chunk size must be between 200 and 3000 characters.")
         chunks = split_chunks(documents, max_chars=chunk_size)
@@ -84,7 +84,7 @@ class LiveWorkspace:
         self.chunk_size = chunk_size
         self.revision += 1
         self.events.insert(0, {"revision": self.revision, "action": action,
-                               "time": datetime.now().strftime("%H:%M:%S"),
+                               "time": datetime.now().strftime("%Y-%m-%d %H:%M PT"),
                                "documents": len(documents), "chunks": len(chunks),
                                "changed_by": changed_by, "effective_from": effective_from})
         if previous is not None:

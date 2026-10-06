@@ -3,10 +3,10 @@
 import math
 import re
 from collections import Counter
-from dataclasses import replace
 from pathlib import Path
 
 from .models import SourceChunk
+from .chunking import split_source
 
 
 STOP_WORDS = set("""a an and are as at be been between by can could did do does for from
@@ -31,30 +31,10 @@ def terms(text: str) -> list[str]:
 
 
 def split_chunks(chunks: list[SourceChunk], max_chars: int = 1800) -> list[SourceChunk]:
-    """Keep exact source substrings and stable IDs; split at paragraph/line breaks."""
-    result = []
-    for chunk in chunks:
-        start = 0
-        part = 0
-        while start < len(chunk.text):
-            end = min(start + max_chars, len(chunk.text))
-            if end < len(chunk.text):
-                boundary = chunk.text.rfind("\n\n", start + max_chars // 2, end)
-                if boundary < 0:
-                    boundary = chunk.text.rfind("\n", start + max_chars // 2, end)
-                if boundary >= 0:
-                    end = boundary + 1
-            passage = chunk.text[start:end]
-            if passage.strip():
-                result.append(replace(
-                    chunk,
-                    chunk_id=chunk.chunk_id if part == 0 else f"{chunk.chunk_id}::part-{part + 1}",
-                    text=passage,
-                    section_title=chunk.section_title if part == 0 else f"{chunk.section_title} (continued {part + 1})",
-                ))
-            start = end
-            part += 1
-    return result
+    """Split by source structure with stable IDs and a strict character bound."""
+    if not isinstance(max_chars, int) or max_chars < 1:
+        raise ValueError("Maximum chunk characters must be a positive integer.")
+    return [part for chunk in chunks if chunk.text.strip() for part in split_source(chunk, max_chars)]
 
 
 def rank_chunks(query: str, chunks: list[SourceChunk], vector_ids: list[str]) -> list[tuple[SourceChunk, float]]:
@@ -122,7 +102,10 @@ def select_chunks(ranked: list[tuple[SourceChunk, float]], scope: str, limit: in
         counts = Counter()
         pool = []
         for chunk, score in ranked:
-            if chunk.system_version != version or counts[chunk.source_file] >= 2:
+            # Structural sections are narrower than the old packed passages.
+            # Keep room for a third section without changing the overall budget.
+            per_file_limit = 3 if chunk.chunk_strategy in {"python-ast", "prose-structure", "sql-statements"} else 2
+            if chunk.system_version != version or counts[chunk.source_file] >= per_file_limit:
                 continue
             counts[chunk.source_file] += 1
             pool.append((chunk, score))

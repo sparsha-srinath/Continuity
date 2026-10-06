@@ -73,6 +73,11 @@ h1{font-weight:800!important}h3{font-size:1.2rem!important}
 .feature h3{font-size:.98rem!important;margin:0 0 8px;padding:0!important;font-weight:800}
 .feature p{font-size:.75rem;color:#7c8980;line-height:1.65;margin:0}
 .feature-number{float:right;font-family:monospace;color:#acb6a9;font-size:.68rem}
+div[class*="st-key-overview-card-"] button{min-height:170px;width:100%;padding:24px!important;text-align:left;justify-content:flex-start;border:1px solid var(--line)!important;border-radius:14px!important;background:#fff!important;transition:background .15s,border-color .15s}
+div[class*="st-key-overview-card-"] button:hover{background:#edf5ec!important;border-color:#337452!important}
+div[class*="st-key-overview-card-"] button:focus-visible{outline:3px solid #337452!important;outline-offset:3px}
+div[class*="st-key-overview-card-"] button p{font-size:.82rem!important;color:#52665c!important;line-height:1.65!important;text-align:left!important}
+div[class*="st-key-overview-card-"] button strong{display:block;font-size:1.15rem;color:#173b30;margin-bottom:10px}
 .flow{display:flex;align-items:center;gap:13px;border:1px solid var(--line);padding:20px 24px;background:#edf2e9;border-radius:12px;margin:22px 0}
 .flow-node{flex:1}.flow-node b{display:block;font-size:.74rem;color:#3c5c43}.flow-node small{font-size:.63rem;color:#7f8d7d}.flow-arrow{color:#9cab94}
 .page-heading{margin-bottom:24px}.page-heading h1{font-size:2.1rem!important;line-height:1.2;margin:5px 0 10px;padding:0!important}.page-heading p{font-size:.86rem;color:#7a897e;line-height:1.6;margin:0;max-width:760px}

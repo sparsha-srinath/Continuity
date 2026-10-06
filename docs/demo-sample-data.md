@@ -150,12 +150,14 @@ Paste the complete block into **New source content**:
 Synthetic demo update | Integration Operations | 2026-09-29
 
 ## Confirmed retry settings
+
 The AMI meter upload integration retries a failed upload up to 4 times.
 The delays before those retries are 5 seconds, 10 seconds, 20 seconds, and
 40 seconds. After the fourth unsuccessful retry, the upload is moved to
 the dead-letter queue and an operations alert is raised.
 
 ## Scope and provenance
+
 These values describe the legacy AMI meter upload integration in this
 synthetic demonstration. This note supplements MeterDataIntegration.md,
 which describes exponential backoff without specific values. The earlier
@@ -163,6 +165,7 @@ email about missing durable documentation predates this clarification.
 These settings do not describe BLPTS license renewals or inspections.
 
 ## Recovery
+
 An operator reviews the dead-letter queue, fixes the underlying failure,
 and replays the upload. Preserve the original upload identifier to avoid
 duplicate meter readings. Alert ownership rests with Integration Operations.
@@ -201,9 +204,10 @@ Replace the entire **Source content** with this block:
 ```markdown
 # AMI retry configuration: owner clarification
 
-Synthetic demo update | Integration Operations | 2026-09-30
+Integration Operations | 2026-09-30
 
 ## Revised retry settings
+
 Following the confirmed firmware update, the legacy AMI meter upload
 integration now retries a failed upload up to 5 times. The delays before
 those retries are 5 seconds, 10 seconds, 20 seconds, 40 seconds, and
@@ -211,6 +215,7 @@ those retries are 5 seconds, 10 seconds, 20 seconds, 40 seconds, and
 the dead-letter queue and an operations alert is raised.
 
 ## Change history and scope
+
 This revision replaces the prior setting of 4 retries, effective
 2026-09-30. Integration Operations confirmed that the firmware update
 added the fifth retry step. The earlier four-retry guidance is historical.
@@ -219,6 +224,7 @@ synthetic demonstration. It supplements MeterDataIntegration.md and does
 not describe BLPTS license renewals or inspections.
 
 ## Recovery
+
 Integration Operations reviews the dead-letter queue, resolves the
 failure, and replays the upload using its original identifier to prevent
 duplicate meter readings. Alert ownership remains with Integration Operations.
@@ -294,22 +300,7 @@ Generate the answer. Show one legacy citation and the new modernized code citati
 
 ## Closing: coming full circle
 
-Choose **Compare both systems** and paste:
-
-```text
-How do BLPTS license renewal fees differ between the legacy and modernized systems?
-```
-
-Or:
-
-```text
-How do BLPTS inspection rules differ between the legacy and modernized systems?
-```
-
-Inspect the system-version labels and source citations. These questions connect the application previews to the indexed implementation and documentation. Do not expect fixed wording.
-
-> **SAY:** We started with a question the documents couldn't fully answer. The PM asked the client, added the response, and updated it when the client corrected it. Then the team built the feature and added the new code.
->
+> **SAY:**
 > That brings us full circle. The next person can find the requirement, see what changed, and check how it was implemented. That's what we mean by Continuity.
 
 ## Reset after the presentation

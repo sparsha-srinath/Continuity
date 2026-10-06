@@ -82,9 +82,21 @@ Nothing needs to be pasted for this section. These three sources are in the base
 
 > **SAY:** These are indexed passages. For each question, retrieval selects relevant passages, and a separate context packer fits the selected evidence into the model request. The model does not receive the entire knowledge base.
 
-## 4. Live Q&A — before the clarification
+## 4. Live Q&A orientation — choose the right evidence scope
 
-> **SAY:** Now let's say we're mid-project and a developer asks how a legacy metering integration handles retries. This is a separate integration example in our sample knowledge base. You need to understand the old behavior to rebuild it safely.
+> **SAY:** Before I start the AMI example, let me show how the Q&A scope works. The assistant can search the modernized application only, the legacy application only, or compare both. That matters because an answer should be based on the version of the system we are discussing.
+
+**DO:** Open **Live Q&A**. Point to **Source scope** and briefly select each option without generating an answer:
+
+- **Modernized only:** searches only the .NET modernization sources.
+- **Legacy only:** searches only the PowerBuilder-era application, its database artifacts, and its historical documentation.
+- **Compare both systems:** retrieves evidence from both versions and asks the model to label the differences by version.
+
+> **SAY:** For a question about how the old system currently behaves, I use Legacy only. For a question about the target implementation, I use Modernized only. When the team needs to understand what changed during modernization, I use Compare both.
+
+## 5. Live Q&A — before the clarification
+
+> **SAY:** Now let’s say I’m a project manager gathering requirements for the AMI metering-integration feature. Before the team can rebuild it safely, we need to understand how the legacy system handles retries. This is a separate integration example in our sample knowledge base.
 >
 > I'll select Legacy only so we look at what's known about that version, generate the answer, and open the evidence it used.
 
@@ -98,7 +110,7 @@ Click **Generate answer**. Open **Cited evidence** or **Retrieved sources**, the
 
 **Expected evidence:** **Retry handling** from `MeterDataIntegration.md` describes exponential backoff without exact settings. **Retry discussion** records the documentation gap. Explain that the sources do not establish the exact values. If the generated answer supplies unsupported numbers, call out the mismatch; do not present them as confirmed.
 
-## 5. Add new evidence
+## 6. Add new evidence
 
 > **SAY:** Once this question is raised, the PM takes that specific gap to the client—in our work, that may be the city—and asks the people who still have that information or locates it in their records. A few days later, the answer comes back, perhaps in an email.
 >
@@ -142,7 +154,7 @@ Review **Chunk preview**, then click **Publish to knowledge base**. Wait for the
 
 > **SAY:** The new source is now indexed. The confirmation shows the new revision and indexed chunks, and the change is attributed to Sparsha in this demo.
 
-## 6. Live Q&A — after the clarification
+## 7. Live Q&A — after the clarification
 
 > **SAY:** A few weeks later, a different person on the team—who wasn't part of that exchange and doesn't know this was ever a question—asks the same thing.
 >
@@ -158,7 +170,7 @@ Open **Before & after**, then inspect the new citation. The evidence supports **
 
 Show **Retrieval details** and click a circled **?** beside a score or parameter. Explain that relevance scores are search scores, not confidence percentages. Retrieved passages and passages sent to the model may differ because of the request-size budget.
 
-## 7. Edit existing evidence — four retries become five
+## 8. Edit existing evidence — four retries become five
 
 > **SAY:** Information also gets corrected as discovery continues. Suppose the client confirms that a later firmware update added a fifth retry. We'll update the existing clarification rather than publish a second competing note.
 >
